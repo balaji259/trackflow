@@ -11,8 +11,6 @@ import {
   Globe,
   Star,
   Play,
-  Menu,
-  X,
   ChevronDown,
   Target,
   Clock,
@@ -20,15 +18,6 @@ import {
 } from "lucide-react";
 
 export default function LandingPage() {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
-
-  useEffect(() => {
-    const handleScroll = () => setScrollY(window.scrollY);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
   const features = [
     {
       icon: <Target className="w-8 h-8" />,
@@ -85,72 +74,6 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      {/* Navigation */}
-      <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrollY > 50 ? 'bg-white/90 backdrop-blur-lg border-b border-slate-200 shadow-lg' : 'bg-transparent'
-      }`}>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center space-x-2">
-              <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-                <Shield className="w-6 h-6 text-white" />
-              </div>
-              <span className="text-xl font-bold text-slate-800">flowtrack</span>
-            </div>
-
-            {/* Desktop Navigation */}
-            <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-slate-600 hover:text-slate-900 transition-colors duration-200 font-medium">Features</a>
-              <a href="#pricing" className="text-slate-600 hover:text-slate-900 transition-colors duration-200 font-medium">Pricing</a>
-              <a href="#testimonials" className="text-slate-600 hover:text-slate-900 transition-colors duration-200 font-medium">Testimonials</a>
-              <button 
-                onClick={() => console.log('Sign in clicked')}
-                className="text-slate-600 hover:text-slate-900 transition-colors duration-200 font-medium"
-              >
-                Sign In
-              </button>
-              <button 
-                onClick={() => console.log('Sign up clicked')}
-                className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-lg font-semibold transition-all duration-300 transform hover:scale-105 shadow-lg"
-              >
-                Get Started
-              </button>
-            </div>
-
-            {/* Mobile menu button */}
-            <button
-              onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="md:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-all duration-200"
-            >
-              {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
-
-          {/* Mobile Navigation */}
-          {isMenuOpen && (
-            <div className="md:hidden absolute top-full left-0 right-0 bg-white border-b border-slate-200 shadow-lg">
-              <div className="px-4 py-6 space-y-4">
-                <a href="#features" className="block text-slate-600 hover:text-slate-900 transition-colors duration-200 font-medium">Features</a>
-                <a href="#pricing" className="block text-slate-600 hover:text-slate-900 transition-colors duration-200 font-medium">Pricing</a>
-                <a href="#testimonials" className="block text-slate-600 hover:text-slate-900 transition-colors duration-200 font-medium">Testimonials</a>
-                <button 
-                  onClick={() => console.log('Sign in clicked')}
-                  className="block w-full text-left text-slate-600 hover:text-slate-900 transition-colors duration-200 font-medium"
-                >
-                  Sign In
-                </button>
-                <button 
-                  onClick={() => console.log('Sign up clicked')}
-                  className="block w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 shadow-lg text-center"
-                >
-                  Get Started
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-      </nav>
-
       {/* Hero Section */}
       <section className="pt-20 pb-16 bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 relative overflow-hidden">
         {/* Background decorative elements */}
@@ -177,8 +100,6 @@ export default function LandingPage() {
             <p className="text-xl md:text-2xl text-slate-600 mb-12 leading-relaxed animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
               Streamline your workflow, collaborate seamlessly, and deliver projects on time with our powerful project management platform designed for modern teams.
             </p>
-
-            
 
             {/* Hero Dashboard Preview */}
             <div className="relative max-w-5xl mx-auto animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
@@ -275,10 +196,6 @@ export default function LandingPage() {
           </div>
         </div>
       </section>
-
-
-
-    
 
       {/* Footer */}
       <footer className="bg-slate-900 text-white py-16">
