@@ -12,6 +12,10 @@ import {
   SignedOut,
   UserButton
 } from '@clerk/nextjs';
+import Link from "next/link";
+
+
+
 
 export default function Navbar() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -35,11 +39,19 @@ export default function Navbar() {
             <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
               <Shield className="w-6 h-6 text-white" />
             </div>
-            <span className="text-xl font-bold text-slate-800">flowtrack</span>
+            <span className="text-xl font-bold text-slate-800">trackflow</span>
           </div>
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
+
+          <Link
+            href="/organizations"
+            className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium"
+          >
+            Organizations
+          </Link>
+           
             <a href="#features" className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium">Features</a>
             <a href="#pricing" className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium">Pricing</a>
             <a href="#testimonials" className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium">Testimonials</a>

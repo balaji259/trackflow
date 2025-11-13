@@ -5,6 +5,7 @@ export interface IUser extends Document {
   email: string;
   clerkId: string;
   organizations: mongoose.Types.ObjectId[];
+    
 }
 
 const UserSchema = new Schema<IUser>(

@@ -6,6 +6,7 @@ export interface IOrganization extends Document {
   createdBy: mongoose.Types.ObjectId;
   members: mongoose.Types.ObjectId[];
   projects: mongoose.Types.ObjectId[];
+
   createdAt: Date;
   updatedAt: Date;
 }

@@ -17,6 +17,7 @@ export default function OrganizationsPage() {
   const [newName, setNewName] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [creating, setCreating] = useState(false);
+  const [inviteModalOpen, setInviteModalOpen] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchOrgs() {
@@ -127,7 +128,6 @@ export default function OrganizationsPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 pt-24 pb-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-5xl mx-auto">
-        {/* Header Section */}
         <div className="mb-10">
           <h1 className="text-4xl font-bold text-slate-900 mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
             Your Organizations
@@ -135,9 +135,8 @@ export default function OrganizationsPage() {
           <p className="text-slate-600">Manage and create organizations for your projects</p>
         </div>
 
-        {/* Error Alert */}
         {error && (
-          <div className="mb-6 bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm animate-in slide-in-from-top">
+          <div className="mb-6 bg-red-50 border-l-4 border-red-500 rounded-lg p-4 shadow-sm">
             <div className="flex items-start">
               <svg className="w-5 h-5 text-red-500 mt-0.5 mr-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
@@ -151,7 +150,6 @@ export default function OrganizationsPage() {
         )}
 
         <div className="grid lg:grid-cols-3 gap-8">
-          {/* Organizations List - Takes 2 columns */}
           <div className="lg:col-span-2">
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden">
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 px-6 py-5">
@@ -180,27 +178,37 @@ export default function OrganizationsPage() {
                 ) : (
                   <div className="space-y-3">
                     {organizations.map((org) => (
-                      <Link
-                        key={org.id}
-                        href={`/organizations/${org.id}/projects`}
-                        className="block group"
-                      >
-                        <div className="p-5 border border-slate-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200 bg-gradient-to-br from-white to-slate-50 hover:from-blue-50 hover:to-indigo-50">
-                          <div className="flex items-start justify-between">
-                            <div className="flex-1">
-                              <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors flex items-center gap-2">
-                                {org.name}
-                                <svg className="w-4 h-4 text-slate-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
-                              </h3>
-                              {org.description && (
-                                <p className="text-sm text-slate-600 mt-2 line-clamp-2">{org.description}</p>
-                              )}
+                      <div key={org.id} className="group">
+                        <Link href={`/organizations/${org.id}/projects`}>
+                          <div className="p-5 border border-slate-200 rounded-xl hover:border-blue-300 hover:shadow-md transition-all duration-200 bg-gradient-to-br from-white to-slate-50 hover:from-blue-50 hover:to-indigo-50">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                <h3 className="font-semibold text-slate-900 group-hover:text-blue-600 transition-colors flex items-center gap-2">
+                                  {org.name}
+                                  <svg className="w-4 h-4 text-slate-400 group-hover:text-blue-500 group-hover:translate-x-1 transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                  </svg>
+                                </h3>
+                                {org.description && (
+                                  <p className="text-sm text-slate-600 mt-2 line-clamp-2">{org.description}</p>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </Link>
+                        </Link>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            setInviteModalOpen(org.id);
+                          }}
+                          className="mt-2 ml-5 text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 transition-colors"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                          </svg>
+                          Invite Members
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -208,7 +216,6 @@ export default function OrganizationsPage() {
             </div>
           </div>
 
-          {/* Create Organization Form - Takes 1 column */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-2xl shadow-lg border border-slate-200 overflow-hidden sticky top-24">
               <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-6 py-5">
@@ -275,6 +282,162 @@ export default function OrganizationsPage() {
             </div>
           </div>
         </div>
+      </div>
+
+      {inviteModalOpen && (
+        <InviteModal
+          organizationId={inviteModalOpen}
+          organizationName={organizations.find(o => o.id === inviteModalOpen)?.name || ""}
+          isOpen={!!inviteModalOpen}
+          onClose={() => setInviteModalOpen(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function InviteModal({ 
+  organizationId, 
+  organizationName,
+  isOpen,
+  onClose 
+}: { 
+  organizationId: string;
+  organizationName: string;
+  isOpen: boolean;
+  onClose: () => void;
+}) {
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviting, setInviting] = useState(false);
+  const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  if (!isOpen) return null;
+
+  async function handleCreateInvite(e: React.FormEvent) {
+    e.preventDefault();
+    setInviting(true);
+    setError(null);
+    setInviteLink(null);
+
+    try {
+      const res = await fetch("/api/invitations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          organizationId,
+          invitedEmail: inviteEmail.trim() || undefined,
+          role: "member",
+        }),
+      });
+
+      if (!res.ok) {
+        const errData = await res.json();
+        throw new Error(errData.error || "Failed to create invitation");
+      }
+
+      const data = await res.json();
+      setInviteLink(data.inviteLink);
+      setInviteEmail("");
+    } catch (err) {
+      console.error("Error creating invitation:", err);
+      setError(err instanceof Error ? err.message : "Failed to create invitation");
+    } finally {
+      setInviting(false);
+    }
+  }
+
+  function copyInviteLink() {
+    if (inviteLink) {
+      navigator.clipboard.writeText(inviteLink);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 relative">
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-slate-400 hover:text-slate-600 transition-colors"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+
+        <h3 className="text-2xl font-bold text-slate-900 mb-2">Invite to {organizationName}</h3>
+        <p className="text-slate-600 text-sm mb-6">Invite members via email or shareable link</p>
+
+        {error && (
+          <div className="mb-4 bg-red-50 border-l-4 border-red-500 rounded p-3">
+            <p className="text-red-700 text-sm">{error}</p>
+          </div>
+        )}
+
+        <form onSubmit={handleCreateInvite} className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700 mb-2">
+              Email Address <span className="text-slate-400 font-normal">(optional)</span>
+            </label>
+            <input
+              type="email"
+              placeholder="colleague@example.com"
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder:text-slate-400"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              disabled={inviting}
+            />
+            <p className="text-xs text-slate-500 mt-1">
+              Leave empty to generate a shareable link
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            disabled={inviting}
+            className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-semibold disabled:from-slate-400 disabled:to-slate-400 transition-all shadow-lg hover:shadow-xl"
+          >
+            {inviting ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                Creating...
+              </span>
+            ) : inviteEmail ? (
+              "Send Email Invite"
+            ) : (
+              "Generate Invite Link"
+            )}
+          </button>
+        </form>
+
+        {inviteLink && (
+          <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+            <p className="text-sm font-medium text-green-800 mb-2 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+              </svg>
+              Invite Link Created!
+            </p>
+            <div className="flex gap-2">
+              <input
+                type="text"
+                readOnly
+                value={inviteLink}
+                className="flex-1 px-3 py-2 bg-white border border-slate-300 rounded text-sm text-slate-700"
+              />
+              <button
+                onClick={copyInviteLink}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium text-sm transition-colors whitespace-nowrap"
+              >
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+            <p className="text-xs text-green-700 mt-2">Valid for 7 days</p>
+          </div>
+        )}
       </div>
     </div>
   );
