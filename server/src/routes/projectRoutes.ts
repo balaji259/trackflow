@@ -2,6 +2,8 @@
 import User from "../models/User.js";
 import Organization from "../models/Organization.js";
 import Project from "../models/Project.js";
+import Message from "../models/Message.js";
+
 import type { IUser } from "../models/User.js";
 import type { IOrganization } from "../models/Organization.js";
 import type { IProject } from "../models/Project.js";
@@ -194,5 +196,38 @@ router.delete("/:organizationId/:projectId", async (req, res) => {
     });
   }
 });
+
+
+
+
+
+// GET last 30 messages for a project
+router.get("/:projectId/messages", async (req, res) => {
+  const messages = await Message.find({ projectId: req.params.projectId })
+    .sort({ createdAt: -1 })
+    .limit(30)
+    .lean();
+  res.json({ messages: messages.reverse() }); // Show oldest first
+});
+
+// POST a new message
+router.post("/:projectId/messages", async (req, res) => {
+  const { userId: clerkUserId, text } = req.body;
+  if (!clerkUserId || !text?.trim()) {
+    return res.status(400).json({ error: "User and non-empty text required" });
+  }
+  const user = await User.findOne({ clerkId: clerkUserId });
+  if (!user) {
+    return res.status(404).json({ error: "User not found" });
+  }
+  const message = await Message.create({
+    projectId: req.params.projectId,
+    userId: user._id,
+    userName: user.name,
+    text: text.trim(),
+  });
+  res.json({ message });
+});
+
 
 export default router;
