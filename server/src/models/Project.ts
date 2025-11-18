@@ -7,6 +7,7 @@ export interface IProject extends Document {
   organizationId: mongoose.Types.ObjectId;
   createdBy: mongoose.Types.ObjectId;
   members: mongoose.Types.ObjectId[];
+   tasks: mongoose.Types.ObjectId[];
   status: 'active' | 'archived' | 'completed';
   createdAt: Date;
   updatedAt: Date;
@@ -19,6 +20,7 @@ const ProjectSchema = new Schema<IProject>(
     organizationId: { type: Schema.Types.ObjectId, ref: "Organization", required: true },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     members: [{ type: Schema.Types.ObjectId, ref: "User" }],
+     tasks: [{ type: Schema.Types.ObjectId, ref: "Task" }],
     status: { 
       type: String, 
       enum: ['active', 'archived', 'completed'], 

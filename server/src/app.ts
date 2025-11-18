@@ -6,6 +6,7 @@ import organizationRoute from "./routes/organizationRoute.js";
 import projectRoutes from "./routes/projectRoutes.js";
 import invitationRoutes from "./routes/invitationRoutes.js";
 
+import taskRoutes from './routes/taskRoutes.js'; 
 
 
 
@@ -19,6 +20,7 @@ app.get("/health", (req, res) => res.json({ ok: true }));
 app.use("/api/organizations", organizationRoute);
 app.use("/api/projects", projectRoutes);
 app.use("/api/invitations", invitationRoutes);
+app.use('/api/tasks', taskRoutes);
 
 connectDB().then(() => {
   app.listen(env.PORT, () => {

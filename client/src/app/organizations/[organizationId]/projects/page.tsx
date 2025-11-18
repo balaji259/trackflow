@@ -186,13 +186,13 @@ export default function ProjectsPage() {
             </div>
             <form onSubmit={handleCreateProject} className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium mb-2 text-gray-900">
                   Project Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   placeholder="Enter project name"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
                   required
@@ -205,7 +205,7 @@ export default function ProjectsPage() {
                 </label>
                 <textarea
                   placeholder="What's this project about?"
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none"
+                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-gray-900"
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
                   rows={4}
