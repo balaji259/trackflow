@@ -29,6 +29,8 @@ export default function ProjectsPage() {
   const [newDescription, setNewDescription] = useState("");
   const [creating, setCreating] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
+ const [leaving, setLeaving] = useState(false);
+
 
   useEffect(() => {
     async function fetchProjects() {
@@ -93,6 +95,29 @@ export default function ProjectsPage() {
       setCreating(false);
     }
   }
+
+  async function handleLeaveOrganization() {
+  if (!confirm("Are you sure you want to leave this organization? You will lose access to its projects.")) {
+    return;
+  }
+  setLeaving(true);
+  setError(null);
+
+  try {
+    const res = await fetch(`/api/organizations/${organizationId}/leave`, {
+      method: "POST",
+    });
+    if (!res.ok) {
+      const errData = await res.json();
+      throw new Error(errData.error || "Failed to leave organization");
+    }
+    // Redirect to organizations list
+    router.push('/organizations');
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Failed to leave organization");
+    setLeaving(false);
+  }
+}
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -169,6 +194,29 @@ export default function ProjectsPage() {
             <span>{error}</span>
           </div>
         )}
+
+        <div className="flex justify-end mb-8">
+  <button
+    onClick={handleLeaveOrganization}
+    className="flex items-center gap-1 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg border border-red-200 text-sm font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
+    disabled={leaving}
+  >
+    {leaving ? (
+      <>
+        <span className="inline-block animate-spin rounded-full h-4 w-4 border-2 border-red-400 border-t-transparent"></span>
+        Leaving...
+      </>
+    ) : (
+      <>
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7" />
+        </svg>
+        Leave Organization
+      </>
+    )}
+  </button>
+</div>
+
 
         {/* Create Project Form */}
         {showCreateForm && (

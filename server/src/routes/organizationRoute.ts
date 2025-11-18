@@ -113,4 +113,93 @@ router.post("/", async (req, res) => {
   }
 });
 
+
+// GET - Fetch organization members
+router.get("/:organizationId/members", async (req, res) => {
+  try {
+    const { organizationId } = req.params;
+    const { userId: clerkUserId, email, name } = req.query;
+
+    if (!clerkUserId || typeof clerkUserId !== 'string') {
+      return res.status(400).json({ message: "userId query parameter is required" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(organizationId)) {
+      return res.status(400).json({ message: "Invalid organization ID" });
+    }
+
+    const user = await getOrCreateUser(clerkUserId, email as string, name as string);
+
+    // Verify user is a member of the organization
+    const organization = await Organization.findById(organizationId)
+      .populate('members', 'name email clerkId') as IOrganization | null;
+    
+    if (!organization) {
+      return res.status(404).json({ message: "Organization not found" });
+    }
+
+    const isMember = organization.members.some(
+      (member: any) => member._id.toString() === (user._id as mongoose.Types.ObjectId).toString()
+    );
+
+    if (!isMember) {
+      return res.status(403).json({ message: "You are not a member of this organization" });
+    }
+
+    // Return member list
+    const members = organization.members.map((member: any) => ({
+      _id: member._id,
+      name: member.name,
+      email: member.email,
+      clerkId: member.clerkId,
+    }));
+
+    res.json({ members });
+  } catch (error) {
+    console.error("Error fetching organization members:", error);
+    res.status(500).json({ 
+      message: "Error fetching organization members", 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+  }
+});
+
+// POST /:organizationId/leave - User leaves organization
+router.post('/:organizationId/leave', async (req, res) => {
+  try {
+    const { organizationId } = req.params;
+    const { userId: clerkUserId } = req.body;
+
+    if (!clerkUserId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+
+    const user = await User.findOne({ clerkId: clerkUserId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Remove user from organization's members array
+    const org = await Organization.findByIdAndUpdate(
+      organizationId,
+      { $pull: { members: user._id } },
+      { new: true }
+    );
+    // Also, remove org from user's organizations array (optional)
+    await User.findByIdAndUpdate(user._id, {
+      $pull: { organizations: organizationId }
+    });
+
+    if (!org) {
+      return res.status(404).json({ message: "Organization not found" });
+    }
+    return res.json({ success: true });
+  } catch (error) {
+    res.status(500).json({
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
+
+
 export default router;

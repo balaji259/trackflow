@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 
+// Single Task interface with userId in assignee
 interface Task {
   _id: string;
   title: string;
@@ -10,15 +11,24 @@ interface Task {
   status: "todo" | "in-progress" | "in-review" | "completed";
   priority: "lowest" | "low" | "medium" | "high" | "highest";
   assignee?: {
+    userId: string;
     name: string;
     email: string;
   };
   createdBy: {
+    userId: string;
     name: string;
     email: string;
   };
   dueDate?: string;
   createdAt: string;
+}
+
+interface Member {
+  _id: string;
+  name: string;
+  email: string;
+  clerkId: string;
 }
 
 export default function TasksPage() {
@@ -34,6 +44,10 @@ export default function TasksPage() {
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creating, setCreating] = useState(false);
 
+  const [members, setMembers] = useState<Member[]>([]);
+  const [selectedAssignee, setSelectedAssignee] = useState<string>("");
+  const [filterAssignee, setFilterAssignee] = useState<string>("all");
+
   // Form state
   const [newTitle, setNewTitle] = useState("");
   const [newDescription, setNewDescription] = useState("");
@@ -41,31 +55,7 @@ export default function TasksPage() {
   const [newStatus, setNewStatus] = useState<"todo" | "in-progress" | "in-review" | "completed">("todo");
   const [newDueDate, setNewDueDate] = useState("");
 
-  useEffect(() => {
-  async function fetchTasks() {
-    if (!isLoaded || !user) return;
-
-    console.log("Frontend - organizationId:", organizationId); // Debug
-    console.log("Frontend - projectId:", projectId); // Debug
-    console.log("Frontend - Full URL:", `/api/tasks/${organizationId}/${projectId}`); // Debug
-
-    try {
-      setError(null);
-      const res = await fetch(`/api/tasks/${organizationId}/${projectId}`, {
-        method: "GET",
-        cache: "no-store",
-      });
-
-      // ... rest of code
-    } catch (err) {
-      // ... error handling
-    }
-  }
-
-  fetchTasks();
-}, [user, isLoaded, organizationId, projectId]);
-
-
+  // Fetch tasks
   useEffect(() => {
     async function fetchTasks() {
       if (!isLoaded || !user) return;
@@ -95,6 +85,29 @@ export default function TasksPage() {
     fetchTasks();
   }, [user, isLoaded, organizationId, projectId]);
 
+  // Fetch members
+  useEffect(() => {
+    async function fetchMembers() {
+      if (!isLoaded || !user) return;
+
+      try {
+        const res = await fetch(`/api/organizations/${organizationId}/members`, {
+          method: "GET",
+          cache: "no-store",
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setMembers(data.members || []);
+        }
+      } catch (err) {
+        console.error("Error loading members:", err);
+      }
+    }
+
+    fetchMembers();
+  }, [user, isLoaded, organizationId]);
+
   async function handleCreateTask(e: React.FormEvent) {
     e.preventDefault();
     if (!newTitle.trim()) return;
@@ -103,6 +116,11 @@ export default function TasksPage() {
     setError(null);
 
     try {
+      // Find selected assignee details
+      const assigneeData = selectedAssignee 
+        ? members.find(m => m._id === selectedAssignee)
+        : undefined;
+
       const res = await fetch(`/api/tasks/${organizationId}/${projectId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -112,6 +130,11 @@ export default function TasksPage() {
           priority: newPriority,
           status: newStatus,
           dueDate: newDueDate || undefined,
+          assignee: assigneeData ? {
+            userId: assigneeData._id,
+            name: assigneeData.name,
+            email: assigneeData.email,
+          } : undefined,
         }),
       });
 
@@ -129,6 +152,7 @@ export default function TasksPage() {
       setNewPriority("medium");
       setNewStatus("todo");
       setNewDueDate("");
+      setSelectedAssignee("");
       setShowCreateForm(false);
     } catch (err) {
       console.error("Error creating task:", err);
@@ -195,12 +219,20 @@ export default function TasksPage() {
     }
   };
 
-  // Group tasks by status
+  // Filter tasks
+  const filteredTasks = tasks.filter((task) => {
+    if (filterAssignee === "all") return true;
+    if (filterAssignee === "unassigned") return !task.assignee;
+    if (filterAssignee === "me") return task.assignee?.userId === members.find(m => m.clerkId === user?.id)?._id;
+    return task.assignee?.userId === filterAssignee;
+  });
+
+  // Group filtered tasks by status (only one declaration)
   const tasksByStatus = {
-    todo: tasks.filter((t) => t.status === "todo"),
-    "in-progress": tasks.filter((t) => t.status === "in-progress"),
-    "in-review": tasks.filter((t) => t.status === "in-review"),
-    completed: tasks.filter((t) => t.status === "completed"),
+    todo: filteredTasks.filter((t) => t.status === "todo"),
+    "in-progress": filteredTasks.filter((t) => t.status === "in-progress"),
+    "in-review": filteredTasks.filter((t) => t.status === "in-review"),
+    completed: filteredTasks.filter((t) => t.status === "completed"),
   };
 
   if (!isLoaded || loading) {
@@ -244,6 +276,21 @@ export default function TasksPage() {
               <h1 className="text-4xl font-bold text-gray-900 mb-2">Tasks</h1>
               <p className="text-gray-600">Manage project tasks and track progress</p>
             </div>
+
+            <div className="flex gap-3">
+            
+             {/* Board View Button */}
+             <button
+      onClick={() => router.push(`/organizations/${organizationId}/projects/${projectId}/board`)}
+      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+    >
+      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+      </svg>
+      Board View
+    </button>
+            
+            
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
               className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
@@ -253,6 +300,7 @@ export default function TasksPage() {
               </svg>
               New Task
             </button>
+          </div>
           </div>
         </div>
 
@@ -285,23 +333,22 @@ export default function TasksPage() {
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Task Title <span className="text-red-500">*</span>
                 </label>
-               <input
-                type="text"
-                placeholder="Enter task title"
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                required
-                disabled={creating}
-              />
-
+                <input
+                  type="text"
+                  placeholder="Enter task title"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  required
+                  disabled={creating}
+                />
               </div>
               
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Description (optional)
                 </label>
-               <textarea
+                <textarea
                   placeholder="What needs to be done?"
                   className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-gray-900"
                   value={newDescription}
@@ -309,7 +356,6 @@ export default function TasksPage() {
                   rows={3}
                   disabled={creating}
                 />
-
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -323,7 +369,6 @@ export default function TasksPage() {
                     onChange={(e) => setNewPriority(e.target.value as any)}
                     disabled={creating}
                   >
-
                     <option value="lowest">Lowest</option>
                     <option value="low">Low</option>
                     <option value="medium">Medium</option>
@@ -361,6 +406,26 @@ export default function TasksPage() {
                     disabled={creating}
                   />
                 </div>
+              </div>
+
+              {/* Assignee Field */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assign To (optional)
+                </label>
+                <select
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all text-gray-900"
+                  value={selectedAssignee}
+                  onChange={(e) => setSelectedAssignee(e.target.value)}
+                  disabled={creating}
+                >
+                  <option value="">Unassigned</option>
+                  {members.map((member) => (
+                    <option key={member._id} value={member._id}>
+                      {member.name} ({member.email})
+                    </option>
+                  ))}
+                </select>
               </div>
 
               <div className="flex gap-3">
@@ -420,19 +485,44 @@ export default function TasksPage() {
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-semibold text-gray-900">
-              All Tasks <span className="text-gray-500 text-lg font-normal">({tasks.length})</span>
+              All Tasks <span className="text-gray-500 text-lg font-normal">({filteredTasks.length})</span>
             </h2>
+            
+            {/* Filter Dropdown */}
+            <div className="flex gap-3 items-center">
+              <label className="text-sm font-medium text-gray-700">Filter by:</label>
+              <select
+                className="px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm text-gray-900"
+                value={filterAssignee}
+                onChange={(e) => setFilterAssignee(e.target.value)}
+              >
+                <option value="all">All Tasks</option>
+                <option value="me">My Tasks</option>
+                <option value="unassigned">Unassigned</option>
+                <optgroup label="Team Members">
+                  {members.map((member) => (
+                    <option key={member._id} value={member._id}>
+                      {member.name}
+                    </option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
           </div>
           
-          {tasks.length === 0 ? (
+          {filteredTasks.length === 0 ? (
             <div className="bg-white rounded-xl shadow-md p-12 text-center border border-gray-200">
               <div className="inline-block p-4 bg-gray-100 rounded-full mb-4">
                 <svg className="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                 </svg>
               </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">No tasks yet</h3>
-              <p className="text-gray-600 mb-6">Get started by creating your first task</p>
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">No tasks found</h3>
+              <p className="text-gray-600 mb-6">
+                {filterAssignee !== "all" 
+                  ? "No tasks match your filter. Try a different filter or create a new task."
+                  : "Get started by creating your first task"}
+              </p>
               <button
                 onClick={() => setShowCreateForm(true)}
                 className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium transition-all inline-flex items-center gap-2"
@@ -440,15 +530,16 @@ export default function TasksPage() {
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                Create First Task
+                Create Task
               </button>
             </div>
           ) : (
             <div className="space-y-3">
-              {tasks.map((task, index) => (
+              {filteredTasks.map((task, index) => (
                 <div
                   key={task._id}
-                  className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all duration-300 border border-gray-200 p-5 group animate-fadeIn"
+                  onClick={() => router.push(`/organizations/${organizationId}/projects/${projectId}/tasks/${task._id}`)}
+                  className="bg-white rounded-lg shadow-md hover:shadow-xl transition-all duration-300 border border-gray-200 p-5 group animate-fadeIn cursor-pointer"
                   style={{ animationDelay: `${index * 30}ms` }}
                 >
                   <div className="flex items-start justify-between gap-4">
@@ -479,6 +570,16 @@ export default function TasksPage() {
                           </svg>
                           <span className="font-medium text-gray-700">Created by: {task.createdBy.name}</span>
                         </div>
+                        
+                        {/* Show Assignee */}
+                        {task.assignee && (
+                          <div className="flex items-center gap-2">
+                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="font-medium text-green-700">Assigned to: {task.assignee.name}</span>
+                          </div>
+                        )}
                         
                         {task.dueDate && (
                           <div className="flex items-center gap-2">

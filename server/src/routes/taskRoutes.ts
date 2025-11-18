@@ -49,7 +49,6 @@ router.get("/:organizationId/:projectId", async (req, res) => {
       return res.status(400).json({ message: "userId query parameter is required" });
     }
 
-    // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(organizationId)) {
       return res.status(400).json({ message: "Invalid organization ID" });
     }
@@ -60,7 +59,6 @@ router.get("/:organizationId/:projectId", async (req, res) => {
 
     const user = await getOrCreateUser(clerkUserId, email as string, name as string);
 
-    // Check if user is a member of the organization
     const organization = await Organization.findById(organizationId) as IOrganization | null;
     if (!organization) {
       return res.status(404).json({ message: "Organization not found" });
@@ -74,7 +72,6 @@ router.get("/:organizationId/:projectId", async (req, res) => {
       return res.status(403).json({ message: "You are not a member of this organization" });
     }
 
-    // Verify project exists and belongs to organization
     const project = await Project.findOne({ 
       _id: projectId, 
       organizationId 
@@ -84,7 +81,6 @@ router.get("/:organizationId/:projectId", async (req, res) => {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    // Fetch all tasks for this project
     const tasks = await Task.find({ 
       projectId,
       organizationId 
@@ -95,6 +91,55 @@ router.get("/:organizationId/:projectId", async (req, res) => {
     console.error("Error fetching tasks:", error);
     res.status(500).json({ 
       message: "Error fetching tasks", 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+  }
+});
+
+// GET - Fetch single task by ID
+router.get("/:organizationId/:projectId/:taskId", async (req, res) => {
+  try {
+    const { organizationId, projectId, taskId } = req.params;
+    const { userId: clerkUserId, email, name } = req.query;
+
+    if (!clerkUserId || typeof clerkUserId !== 'string') {
+      return res.status(400).json({ message: "userId query parameter is required" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      return res.status(400).json({ message: "Invalid task ID" });
+    }
+
+    const user = await getOrCreateUser(clerkUserId, email as string, name as string);
+
+    const organization = await Organization.findById(organizationId) as IOrganization | null;
+    if (!organization) {
+      return res.status(404).json({ message: "Organization not found" });
+    }
+
+    const isMember = organization.members.some(
+      (memberId) => memberId.toString() === (user._id as mongoose.Types.ObjectId).toString()
+    );
+
+    if (!isMember) {
+      return res.status(403).json({ message: "You are not a member of this organization" });
+    }
+
+    const task = await Task.findOne({ 
+      _id: taskId,
+      projectId,
+      organizationId 
+    }) as ITask | null;
+    
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    res.json({ task });
+  } catch (error) {
+    console.error("Error fetching task:", error);
+    res.status(500).json({ 
+      message: "Error fetching task", 
       error: error instanceof Error ? error.message : String(error) 
     });
   }
@@ -124,7 +169,6 @@ router.post("/:organizationId/:projectId", async (req, res) => {
       return res.status(400).json({ message: "userId is required" });
     }
 
-    // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(organizationId)) {
       return res.status(400).json({ message: "Invalid organization ID" });
     }
@@ -135,7 +179,6 @@ router.post("/:organizationId/:projectId", async (req, res) => {
 
     const user = await getOrCreateUser(clerkUserId, userEmail, userName);
 
-    // Check if user is a member of the organization
     const organization = await Organization.findById(organizationId) as IOrganization | null;
     if (!organization) {
       return res.status(404).json({ message: "Organization not found" });
@@ -149,7 +192,6 @@ router.post("/:organizationId/:projectId", async (req, res) => {
       return res.status(403).json({ message: "You are not a member of this organization" });
     }
 
-    // Verify project exists
     const project = await Project.findOne({ 
       _id: projectId, 
       organizationId 
@@ -159,7 +201,6 @@ router.post("/:organizationId/:projectId", async (req, res) => {
       return res.status(404).json({ message: "Project not found" });
     }
 
-    // Create new task
     const newTask = new Task({
       title: title.trim(),
       description: description?.trim() || undefined,
@@ -178,7 +219,10 @@ router.post("/:organizationId/:projectId", async (req, res) => {
 
     await newTask.save();
 
-    // Add task to project's tasks array
+    if (!project.tasks) {
+      project.tasks = [];
+    }
+
     if (!project.tasks.some(taskId => taskId.toString() === newTask._id.toString())) {
       project.tasks.push(newTask._id as mongoose.Types.ObjectId);
       await project.save();
@@ -194,6 +238,76 @@ router.post("/:organizationId/:projectId", async (req, res) => {
   }
 });
 
+// PUT - Update task
+router.put("/:organizationId/:projectId/:taskId", async (req, res) => {
+  try {
+    const { organizationId, projectId, taskId } = req.params;
+    const { 
+      title, 
+      description, 
+      priority, 
+      status, 
+      assignee, 
+      dueDate,
+      userId: clerkUserId 
+    } = req.body;
+
+    if (!clerkUserId) {
+      return res.status(400).json({ message: "userId is required" });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      return res.status(400).json({ message: "Invalid task ID" });
+    }
+
+    const user = await User.findOne({ clerkId: clerkUserId }) as IUser | null;
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const organization = await Organization.findById(organizationId) as IOrganization | null;
+    if (!organization) {
+      return res.status(404).json({ message: "Organization not found" });
+    }
+
+    const isMember = organization.members.some(
+      (memberId) => memberId.toString() === (user._id as mongoose.Types.ObjectId).toString()
+    );
+
+    if (!isMember) {
+      return res.status(403).json({ message: "You are not a member of this organization" });
+    }
+
+    const task = await Task.findOne({ 
+      _id: taskId,
+      projectId,
+      organizationId 
+    }) as ITask | null;
+    
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+
+    // Update task fields
+    if (title !== undefined) task.title = title.trim();
+    if (description !== undefined) task.description = description?.trim() || undefined;
+    if (priority !== undefined) task.priority = priority;
+    if (status !== undefined) task.status = status;
+    if (assignee !== undefined) task.assignee = assignee;
+    if (dueDate !== undefined) task.dueDate = dueDate ? new Date(dueDate) : undefined;
+
+    await task.save();
+
+    res.json(task);
+  } catch (error) {
+    console.error("Error updating task:", error);
+    res.status(500).json({ 
+      message: "Error updating task", 
+      error: error instanceof Error ? error.message : String(error) 
+    });
+  }
+});
+
 // DELETE - Delete a task
 router.delete("/:organizationId/:projectId/:taskId", async (req, res) => {
   try {
@@ -204,12 +318,15 @@ router.delete("/:organizationId/:projectId/:taskId", async (req, res) => {
       return res.status(400).json({ message: "userId query parameter is required" });
     }
 
+    if (!mongoose.Types.ObjectId.isValid(taskId)) {
+      return res.status(400).json({ message: "Invalid task ID" });
+    }
+
     const user = await User.findOne({ clerkId: clerkUserId }) as IUser | null;
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Find task and check ownership
     const task = await Task.findById(taskId) as ITask | null;
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
@@ -219,13 +336,11 @@ router.delete("/:organizationId/:projectId/:taskId", async (req, res) => {
       return res.status(403).json({ message: "Only task creator can delete the task" });
     }
 
-    // Remove task from project
     await Project.findByIdAndUpdate(
       projectId,
       { $pull: { tasks: taskId } }
     );
 
-    // Delete task
     await Task.findByIdAndDelete(taskId);
 
     res.json({ message: "Task deleted successfully" });

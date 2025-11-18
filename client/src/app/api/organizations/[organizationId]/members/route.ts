@@ -1,0 +1,45 @@
+import { NextRequest, NextResponse } from "next/server";
+import { auth, currentUser } from "@clerk/nextjs/server";
+
+const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000/api/organizations";
+
+export async function GET(
+  req: NextRequest,
+  { params }: { params: { organizationId: string } }
+) {
+  try {
+    const { userId } = await auth();
+    
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const user = await currentUser();
+    const { organizationId } = params;
+
+    const resp = await fetch(
+      `${BACKEND_URL}/${organizationId}/members?userId=${userId}&email=${encodeURIComponent(user?.emailAddresses[0]?.emailAddress || '')}&name=${encodeURIComponent(user?.fullName || user?.firstName || 'User')}`,
+      {
+        headers: { 'Content-Type': 'application/json' },
+        cache: 'no-store',
+      }
+    );
+
+    if (!resp.ok) {
+      const errData = await resp.json().catch(() => ({}));
+      return NextResponse.json(
+        { error: errData.message || "Failed to fetch members" },
+        { status: resp.status }
+      );
+    }
+
+    const data = await resp.json();
+    return NextResponse.json({ members: data.members || [] });
+  } catch (error) {
+    console.error("GET /api/organizations/members error:", error);
+    return NextResponse.json(
+      { error: "Internal Server Error" },
+      { status: 500 }
+    );
+  }
+}
