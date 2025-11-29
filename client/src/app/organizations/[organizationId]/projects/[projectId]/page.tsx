@@ -2,6 +2,9 @@
 import { useEffect, useState, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
+import SlideDrawer from "@/app/components/SlideDrawer";
+import ProjectChat from "@/app/components/ProjectChat";
+
 
 // Single Task interface with userId in assignee
 interface Task {
@@ -24,90 +27,12 @@ interface Task {
   createdAt: string;
 }
 
+
 interface Member {
   _id: string;
   name: string;
   email: string;
   clerkId: string;
-}
-
-function ProjectChat({ projectId, user }) {
-  const [messages, setMessages] = useState<any[]>([]);
-  const [input, setInput] = useState("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Poll every 2s for new messages
-  useEffect(() => {
-    let ignore = false;
-    const fetchMessages = async () => {
-      const res = await fetch(`/api/projects/messages/${projectId}`);
-      const data = await res.json();
-      if (!ignore) setMessages(data.messages || []);
-    };
-    fetchMessages();
-    const interval = setInterval(fetchMessages, 2000);
-    return () => { ignore = true; clearInterval(interval); };
-  }, [projectId]);
-
-  // Scroll chat to bottom on update
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  async function sendMessage(e: React.FormEvent) {
-    e.preventDefault();
-    if (!input.trim()) return;
-    setInput("");
-    setMessages(msgs =>
-      [...msgs, {
-        _id: "local-" + Date.now(),
-        userName: user.firstName || user.fullName || "User",
-        text: input,
-        createdAt: new Date().toISOString()
-      }]
-    );
-    await fetch(`/api/projects/messages/${projectId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ text: input }),
-    });
-  }
-
-  return (
-    <div className="bg-white border rounded-xl shadow-md mb-8 p-4 max-w-2xl mx-auto w-full">
-      <h2 className="font-semibold mb-2 text-lg text-gray-900">Project Chat</h2>
-      <div className="overflow-y-auto mb-2 max-h-56 min-h-[64px] space-y-2 px-1 bg-gray-50 rounded">
-        {messages.length === 0 && (
-          <div className="text-gray-400 text-sm text-center py-8">No messages yet. Start the conversation!</div>
-        )}
-        {messages.map((m) => (
-          <div key={m._id} className="flex gap-2 items-end">
-            <span className="font-semibold text-blue-700">{m.userName}:</span>
-            <span className="text-gray-800">{m.text}</span>
-            <span className="text-gray-400 text-xs ml-auto">
-              {m.createdAt ? new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : ""}
-            </span>
-          </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
-      <form className="flex gap-2 items-center" onSubmit={sendMessage}>
-        <input
-          className="flex-1 border rounded-lg px-3 py-2 text-sm focus:ring-blue-500 focus:border-blue-500 transition"
-          value={input}
-          onChange={e => setInput(e.target.value)}
-          placeholder="Type a message..."
-          maxLength={300}
-        />
-        <button
-          type="submit"
-          className="bg-blue-600 text-white rounded-lg px-4 py-2 hover:bg-blue-700 transition font-medium"
-        >
-          Send
-        </button>
-      </form>
-    </div>
-  );
 }
 
 
@@ -123,6 +48,7 @@ export default function TasksPage() {
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false); // Chat drawer state
 
   const [members, setMembers] = useState<Member[]>([]);
   const [selectedAssignee, setSelectedAssignee] = useState<string>("");
@@ -134,6 +60,7 @@ export default function TasksPage() {
   const [newPriority, setNewPriority] = useState<"lowest" | "low" | "medium" | "high" | "highest">("medium");
   const [newStatus, setNewStatus] = useState<"todo" | "in-progress" | "in-review" | "completed">("todo");
   const [newDueDate, setNewDueDate] = useState("");
+
 
   // Fetch tasks
   useEffect(() => {
@@ -165,6 +92,7 @@ export default function TasksPage() {
     fetchTasks();
   }, [user, isLoaded, organizationId, projectId]);
 
+
   // Fetch members
   useEffect(() => {
     async function fetchMembers() {
@@ -187,6 +115,7 @@ export default function TasksPage() {
 
     fetchMembers();
   }, [user, isLoaded, organizationId]);
+
 
   async function handleCreateTask(e: React.FormEvent) {
     e.preventDefault();
@@ -307,7 +236,7 @@ export default function TasksPage() {
     return task.assignee?.userId === filterAssignee;
   });
 
-  // Group filtered tasks by status (only one declaration)
+  // Group filtered tasks by status
   const tasksByStatus = {
     todo: filteredTasks.filter((t) => t.status === "todo"),
     "in-progress": filteredTasks.filter((t) => t.status === "in-progress"),
@@ -340,8 +269,6 @@ export default function TasksPage() {
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        
-        
         <div className="mb-8">
           <button
             onClick={() => router.push(`/organizations/${organizationId}/projects`)}
@@ -352,9 +279,6 @@ export default function TasksPage() {
             </svg>
             Back to Projects
           </button>
-
-
-          {/* chat end */}
           
           <div className="flex justify-between items-center">
             <div>
@@ -366,36 +290,37 @@ export default function TasksPage() {
             
              {/* Board View Button */}
              <button
-      onClick={() => router.push(`/organizations/${organizationId}/projects/${projectId}/board`)}
-      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
-    >
-      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
-      </svg>
-      Board View
-    </button>
+                onClick={() => router.push(`/organizations/${organizationId}/projects/${projectId}/board`)}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+                </svg>
+                Board View
+              </button>
 
-     <button
-    onClick={() => router.push(`/organizations/${organizationId}/projects/${projectId}/chat`)}
-    className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
-  >
-    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h2"/> 
-    </svg>
-    Chat
-  </button>
+             {/* Chat Button - Opens Drawer */}
+             <button
+                onClick={() => setIsChatOpen(true)}
+                className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                </svg>
+                Chat
+              </button>
             
             
-            <button
-              onClick={() => setShowCreateForm(!showCreateForm)}
-              className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-              </svg>
-              New Task
-            </button>
-          </div>
+              <button
+                onClick={() => setShowCreateForm(!showCreateForm)}
+                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                New Task
+              </button>
+            </div>
           </div>
         </div>
 
@@ -708,6 +633,15 @@ export default function TasksPage() {
         </div>
       </div>
 
+      {/* Chat Sliding Drawer */}
+      <SlideDrawer 
+        isOpen={isChatOpen} 
+        onClose={() => setIsChatOpen(false)}
+        title="Project Chat"
+      >
+        <ProjectChat projectId={projectId} user={user} />
+      </SlideDrawer>
+
       <style jsx>{`
         @keyframes fadeIn {
           from {
@@ -749,4 +683,3 @@ export default function TasksPage() {
     </div>
   );
 }
-

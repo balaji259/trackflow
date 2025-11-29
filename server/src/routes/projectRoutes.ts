@@ -201,33 +201,36 @@ router.delete("/:organizationId/:projectId", async (req, res) => {
 
 
 
-// GET last 30 messages for a project
+// GET last 30 messages for a project (KEEP THIS - for initial load)
+// router.get("/:projectId/messages", async (req, res) => {
+//   const messages = await Message.find({ projectId: req.params.projectId })
+//     .sort({ createdAt: -1 })
+//     .limit(30)
+//     .lean();
+//   res.json({ messages: messages.reverse() });
+// });
+
+
+// In projectRoutes.js GET endpoint
 router.get("/:projectId/messages", async (req, res) => {
   const messages = await Message.find({ projectId: req.params.projectId })
+    .populate('userId', 'clerkId')  // ✅ Populate clerkId
     .sort({ createdAt: -1 })
     .limit(30)
     .lean();
-  res.json({ messages: messages.reverse() }); // Show oldest first
+  
+  // ✅ Map to include clerkId
+  const messagesWithClerkId = messages.map(msg => ({
+    _id: msg._id,
+    userName: msg.userName,
+    userId: msg.userId?.clerkId || '',  // ✅ Use Clerk ID
+    text: msg.text,
+    createdAt: msg.createdAt
+  }));
+  
+  res.json({ messages: messagesWithClerkId.reverse() });
 });
 
-// POST a new message
-router.post("/:projectId/messages", async (req, res) => {
-  const { userId: clerkUserId, text } = req.body;
-  if (!clerkUserId || !text?.trim()) {
-    return res.status(400).json({ error: "User and non-empty text required" });
-  }
-  const user = await User.findOne({ clerkId: clerkUserId });
-  if (!user) {
-    return res.status(404).json({ error: "User not found" });
-  }
-  const message = await Message.create({
-    projectId: req.params.projectId,
-    userId: user._id,
-    userName: user.name,
-    text: text.trim(),
-  });
-  res.json({ message });
-});
 
 
 export default router;

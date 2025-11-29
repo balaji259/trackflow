@@ -45,12 +45,22 @@ export default function Navbar() {
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-8">
 
+
+         <Link
+            href="/dashboard"
+            className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium"
+          >
+            Dashboard
+          </Link>
+           
+
           <Link
             href="/organizations"
             className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium"
           >
             Organizations
           </Link>
+
            
             <a href="#features" className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium">Features</a>
             <a href="#pricing" className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium">Pricing</a>

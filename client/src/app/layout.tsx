@@ -31,10 +31,10 @@ export default function RootLayout({
           {children}
 
           {/* Jotform Agent Script */}
-          <Script
+          {/* <Script
             src='https://cdn.jotfor.ms/agent/embedjs/019a862f6f3a73a5bce2e4e956a3bc8db663/embed.js'
             strategy='afterInteractive'
-          />
+          /> */}
         </body>
       </html>
     </ClerkProvider>
