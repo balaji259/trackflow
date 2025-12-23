@@ -1,15 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
-import { auth, currentUser } from "@clerk/nextjs/server";
+
 const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
 
 if (!BACKEND_URL) {
   throw new Error("NEXT_PUBLIC_BACKEND_URL is not defined");
 }
 
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ projectId: string }> }
+) {
+  const { projectId } = await context.params;
 
-export async function GET(req: NextRequest, { params }: { params: { projectId: string } }) {
-  const resp = await fetch(`${BACKEND_URL}/api/projects/${params.projectId}/messages`, { cache: "no-store" });
+  const resp = await fetch(
+    `${BACKEND_URL}/api/projects/${projectId}/messages`,
+    { cache: "no-store" }
+  );
+
   const data = await resp.json();
   return NextResponse.json(data);
 }
-

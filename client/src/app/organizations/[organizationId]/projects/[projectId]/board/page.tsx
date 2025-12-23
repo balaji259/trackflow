@@ -187,18 +187,21 @@ export default function KanbanBoardPage() {
     }
   };
 
-  const getPriorityIcon = (priority: string) => {
-    switch (priority) {
-      case 'highest':
-      case 'high':
-        return "↑";
-      case 'medium':
-        return "−";
-      case 'low':
-      case 'lowest':
-        return "↓";
-    }
-  };
+ function getPriorityIcon(priority: string): string {
+  switch (priority) {
+    case "highest":
+    case "high":
+      return "↑";
+    case "medium":
+      return "-";
+    case "low":
+    case "lowest":
+      return "↓";
+    default:
+      return ""; // ✅ FIX: guarantees string
+  }
+}
+
 
   // Filter tasks
   const filteredTasks = tasks.filter((task) => {
@@ -422,7 +425,6 @@ function DraggableTask({
     listeners,
     setNodeRef,
     transform,
-    transition,
     isDragging,
   } = useDraggable({
     id: task._id,
@@ -432,7 +434,7 @@ function DraggableTask({
     transform: transform
       ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
       : undefined,
-    transition,
+  
     opacity: isDragging ? 0.5 : 1,
   };
 

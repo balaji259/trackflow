@@ -3,10 +3,28 @@ import { useEffect, useState, useRef } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 
-function ProjectChat({ projectId, user }) {
-  const [messages, setMessages] = useState<any[]>([]);
+  interface ChatMessage {
+  _id: string;
+  userName: string;
+  text: string;
+  createdAt?: string;
+}
+
+interface ProjectChatProps {
+  projectId: string;
+  user: {
+    firstName?: string | null;
+    fullName?: string | null;
+  };
+}
+
+function ProjectChat({ projectId, user }: ProjectChatProps) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+
+
 
   useEffect(() => {
     let ignore = false;
@@ -50,7 +68,7 @@ function ProjectChat({ projectId, user }) {
         {messages.length === 0 && (
           <div className="text-gray-400 text-sm text-center py-8">No messages yet. Start the conversation!</div>
         )}
-        {messages.map((m) => (
+        {messages.map((m: ChatMessage) => (
           <div key={m._id} className="flex gap-2 items-end">
             <span className="font-semibold text-blue-700">{m.userName}:</span>
             <span className="text-gray-800">{m.text}</span>

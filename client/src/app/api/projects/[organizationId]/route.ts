@@ -10,7 +10,7 @@ if (!BACKEND_URL) {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -20,7 +20,7 @@ export async function GET(
     }
 
     const user = await currentUser();
-    const { organizationId } = params;
+    const { organizationId } = await params;
 
     const resp = await fetch(
       `${BACKEND_URL}/api/projects/${organizationId}?userId=${userId}&email=${encodeURIComponent(user?.emailAddresses[0]?.emailAddress || '')}&name=${encodeURIComponent(user?.fullName || user?.firstName || 'User')}`,
@@ -51,7 +51,7 @@ export async function GET(
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -61,7 +61,7 @@ export async function POST(
     }
 
     const user = await currentUser();
-    const { organizationId } = params;
+    const { organizationId } = await params;
     const body = await req.json();
     const { name, description } = body;
 

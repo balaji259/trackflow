@@ -184,7 +184,7 @@ export default function DashboardPage() {
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Welcome back, {user.firstName || 'User'} 
           </h1>
-          <p className="text-gray-600">Here's what's happening with your projects today.</p>
+          <p className="text-gray-600">Look what is happening with your projects today</p>
         </div>
 
         {/* Statistics Cards */}

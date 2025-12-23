@@ -7,30 +7,35 @@ if (!BACKEND_URL) {
   throw new Error("NEXT_PUBLIC_BACKEND_URL is not defined");
 }
 
-
 // GET all tasks for a project
 export async function GET(
   req: NextRequest,
-  { params }: { params: { organizationId: string; projectId: string } }
+  context: {
+    params: Promise<{ organizationId: string; projectId: string }>;
+  }
 ) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = await currentUser();
-    const { organizationId, projectId } = params;
+    const { organizationId, projectId } = await context.params;
 
-    console.log("Next.js API - organizationId:", organizationId); // Debug
-    console.log("Next.js API - projectId:", projectId); // Debug
+    console.log("Next.js API - organizationId:", organizationId);
+    console.log("Next.js API - projectId:", projectId);
 
     const resp = await fetch(
-      `${BACKEND_URL}/api/tasks/${organizationId}/${projectId}?userId=${userId}&email=${encodeURIComponent(user?.emailAddresses[0]?.emailAddress || '')}&name=${encodeURIComponent(user?.fullName || user?.firstName || 'User')}`,
+      `${BACKEND_URL}/api/tasks/${organizationId}/${projectId}?userId=${userId}&email=${encodeURIComponent(
+        user?.emailAddresses[0]?.emailAddress || ""
+      )}&name=${encodeURIComponent(
+        user?.fullName || user?.firstName || "User"
+      )}`,
       {
-        headers: { 'Content-Type': 'application/json' },
-        cache: 'no-store',
+        headers: { "Content-Type": "application/json" },
+        cache: "no-store",
       }
     );
 
@@ -56,22 +61,24 @@ export async function GET(
 // POST - Create a new task
 export async function POST(
   req: NextRequest,
-  { params }: { params: { organizationId: string; projectId: string } }
+  context: {
+    params: Promise<{ organizationId: string; projectId: string }>;
+  }
 ) {
   try {
     const { userId } = await auth();
-    
+
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const user = await currentUser();
-    const { organizationId, projectId } = params;
+    const { organizationId, projectId } = await context.params;
     const body = await req.json();
     const { title, description, priority, status, assignee, dueDate } = body;
 
-    console.log("Next.js API POST - organizationId:", organizationId); // Debug
-    console.log("Next.js API POST - projectId:", projectId); // Debug
+    console.log("Next.js API POST - organizationId:", organizationId);
+    console.log("Next.js API POST - projectId:", projectId);
 
     if (!title || !title.trim()) {
       return NextResponse.json(
@@ -80,21 +87,24 @@ export async function POST(
       );
     }
 
-    const resp = await fetch(`${BACKEND_URL}/api/tasks/${organizationId}/${projectId}`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title: title.trim(),
-        description: description?.trim(),
-        priority: priority || "medium",
-        status: status || "todo",
-        assignee,
-        dueDate,
-        userId,
-        userEmail: user?.emailAddresses[0]?.emailAddress || '',
-        userName: user?.fullName || user?.firstName || 'User'
-      }),
-    });
+    const resp = await fetch(
+      `${BACKEND_URL}/api/tasks/${organizationId}/${projectId}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description?.trim(),
+          priority: priority || "medium",
+          status: status || "todo",
+          assignee,
+          dueDate,
+          userId,
+          userEmail: user?.emailAddresses[0]?.emailAddress || "",
+          userName: user?.fullName || user?.firstName || "User",
+        }),
+      }
+    );
 
     if (!resp.ok) {
       const errData = await resp.json().catch(() => ({}));

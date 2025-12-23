@@ -10,7 +10,7 @@ if (!BACKEND_URL) {
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -20,7 +20,7 @@ export async function GET(
     }
 
     const user = await currentUser();
-    const { organizationId } = params;
+    const { organizationId } = await params;
 
     const resp = await fetch(
       `${BACKEND_URL}/api/organizations/${organizationId}/members?userId=${userId}&email=${encodeURIComponent(user?.emailAddresses[0]?.emailAddress || '')}&name=${encodeURIComponent(user?.fullName || user?.firstName || 'User')}`,

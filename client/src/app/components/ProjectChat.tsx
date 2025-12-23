@@ -1,11 +1,16 @@
 'use client';
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { io, Socket } from 'socket.io-client';
 
 interface ProjectChatProps {
   projectId: string;
-  user: any;
+  user: ChatUser;
 }
+
+interface ChatUser {
+  id: string;
+}
+
 
 interface Message {
   _id: string;
@@ -22,7 +27,17 @@ export default function ProjectChat({ projectId, user }: ProjectChatProps) {
   const [connected, setConnected] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const socketRef = useRef<Socket | null>(null);
-
+  
+  const fetchInitialMessages = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/projects/messages/${projectId}`);
+      const data = await res.json();
+      setMessages(data.messages || []);
+    } catch (error) {
+      console.error('Error fetching initial messages:', error);
+    }
+  }, [projectId]);
+  
   useEffect(() => {
     const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000', {
       transports: ['websocket', 'polling'],
@@ -37,17 +52,17 @@ export default function ProjectChat({ projectId, user }: ProjectChatProps) {
     });
 
     socket.on('disconnect', () => {
-      console.log('❌ Disconnected from Socket.io server');
+      console.log(' Disconnected from Socket.io server');
       setConnected(false);
     });
 
     socket.on('new_message', (message: Message) => {
-      console.log('📩 New message received:', message);
+      console.log(' New message received:', message);
       setMessages(prev => [...prev, message]);
     });
 
-    socket.on('message_error', (error: any) => {
-      console.error('❌ Message error:', error);
+    socket.on('message_error', (error: unknown) => {
+      console.error(' Message error:', error);
       setSending(false);
     });
 
@@ -57,17 +72,9 @@ export default function ProjectChat({ projectId, user }: ProjectChatProps) {
       socket.emit('leave_project', projectId);
       socket.disconnect();
     };
-  }, [projectId]);
+  }, [projectId, fetchInitialMessages]);
 
-  const fetchInitialMessages = async () => {
-    try {
-      const res = await fetch(`/api/projects/messages/${projectId}`);
-      const data = await res.json();
-      setMessages(data.messages || []);
-    } catch (error) {
-      console.error('Error fetching initial messages:', error);
-    }
-  };
+
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

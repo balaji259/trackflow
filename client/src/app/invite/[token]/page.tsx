@@ -122,7 +122,7 @@ export default function InvitePage({ params }: { params: Promise<{ token: string
         </div>
 
         <h2 className="text-2xl font-bold text-slate-800 mb-2 text-center">
-          You're Invited!
+          You are Invited!
         </h2>
 
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg p-4 mb-6">

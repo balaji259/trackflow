@@ -7,7 +7,7 @@ if (!BACKEND_URL) {
   throw new Error("NEXT_PUBLIC_BACKEND_URL is not defined");
 }
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const { userId } = await auth();
     

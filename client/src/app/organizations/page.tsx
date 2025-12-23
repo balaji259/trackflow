@@ -9,6 +9,16 @@ interface Organization {
   description?: string;
 }
 
+interface OrganizationApiResponse {
+  _id?: string;
+  id?: string;
+  name: string;
+  description?: string;
+}
+
+
+
+
 export default function OrganizationsPage() {
   const { user, isLoaded } = useUser();
   const [organizations, setOrganizations] = useState<Organization[]>([]);
@@ -41,7 +51,7 @@ export default function OrganizationsPage() {
         }
 
         const data = await res.json();
-        const orgs = (data.organizations || []).map((org: any) => ({
+        const orgs = (data.organizations || []).map((org: OrganizationApiResponse) => ({
           id: org._id || org.id,
           name: org.name,
           description: org.description,

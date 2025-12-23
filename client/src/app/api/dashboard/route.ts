@@ -7,7 +7,7 @@ console.log("ENV CHECK:", process.env.NEXT_PUBLIC_BACKEND_URL);
 
 
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
 
     console.log("inside get");

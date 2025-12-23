@@ -16,6 +16,9 @@ interface Project {
   createdAt: string;
 }
 
+type ProjectStatus = "active" | "completed" | "archived";
+
+
 export default function ProjectsPage() {
   const { user, isLoaded } = useUser();
   const params = useParams();
@@ -97,7 +100,7 @@ export default function ProjectsPage() {
   }
 
   async function handleLeaveOrganization() {
-  if (!confirm("Are you sure you want to leave this organization? You will lose access to its projects.")) {
+  if (!window.confirm("Are you sure you want to leave this organization? You will lose access to its projects.")) {
     return;
   }
   setLeaving(true);
@@ -119,7 +122,7 @@ export default function ProjectsPage() {
   }
 }
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: "active" | "completed" | "archived") => {
     switch (status.toLowerCase()) {
       case 'active':
         return 'bg-green-100 text-green-800 border-green-200';
@@ -171,7 +174,7 @@ export default function ProjectsPage() {
           <div className="flex justify-between items-center">
             <div>
               <h1 className="text-4xl font-bold text-gray-900 mb-2">Projects</h1>
-              <p className="text-gray-600">Manage and organize your team's work</p>
+              <p className="text-gray-600">Manage and organize your team work</p>
             </div>
             <button
               onClick={() => setShowCreateForm(!showCreateForm)}
@@ -252,7 +255,7 @@ export default function ProjectsPage() {
                   Description (optional)
                 </label>
                 <textarea
-                  placeholder="What's this project about?"
+                  placeholder="What is this project about?"
                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all resize-none text-gray-900"
                   value={newDescription}
                   onChange={(e) => setNewDescription(e.target.value)}
@@ -341,7 +344,7 @@ export default function ProjectsPage() {
                           </svg>
                         </h3>
                       </Link>
-                      <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize border ${getStatusColor(project.status)}`}>
+                      <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize border ${getStatusColor(project.status as ProjectStatus)}`}>
                         {project.status}
                       </span>
                     </div>

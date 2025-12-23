@@ -1,11 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
 import {
-  Shield,
+  
   Menu,
   X,
   Kanban,
-  Workflow
+  
 } from "lucide-react";
 import {
   SignInButton,

@@ -10,7 +10,7 @@ if (!BACKEND_URL) {
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { organizationId: string } }
+  { params }: { params: Promise<{ organizationId: string }> }
 ) {
   try {
     const { userId } = await auth();
@@ -18,7 +18,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
     const user = await currentUser();
-    const { organizationId } = params;
+    const { organizationId } = await params;
 
     // Call backend Express route to remove user from organization
     const resp = await fetch(`${BACKEND_URL}/api/organizations/${organizationId}/leave`, {
@@ -40,7 +40,7 @@ export async function POST(
     }
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch (_error) {
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }
