@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000/api/invitations";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+if (!BACKEND_URL) {
+  throw new Error("NEXT_PUBLIC_BACKEND_URL is not defined");
+}
 
 export async function POST(
   req: NextRequest,
@@ -18,7 +22,7 @@ export async function POST(
     // Await params in Next.js 15
     const { token } = await params;
 
-    const resp = await fetch(`${BACKEND_URL}/${token}/accept`, {
+    const resp = await fetch(`${BACKEND_URL}/api/invitations/${token}/accept`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

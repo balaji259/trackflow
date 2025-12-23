@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000/api/invitations";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+if (!BACKEND_URL) {
+  throw new Error("NEXT_PUBLIC_BACKEND_URL is not defined");
+}
+
 
 export async function GET(
   req: NextRequest,
@@ -10,7 +15,7 @@ export async function GET(
     // Await params in Next.js 15
     const { token } = await params;
 
-    const resp = await fetch(`${BACKEND_URL}/${token}`, {
+    const resp = await fetch(`${BACKEND_URL}/api/invitations/${token}`, {
       cache: 'no-store',
     });
 

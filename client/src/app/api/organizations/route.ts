@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000/api/organizations";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+if (!BACKEND_URL) {
+  throw new Error("NEXT_PUBLIC_BACKEND_URL is not defined");
+}
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,7 +18,7 @@ export async function GET(req: NextRequest) {
     // Get full user details from Clerk
     const user = await currentUser();
 
-    const resp = await fetch(`${BACKEND_URL}?userId=${userId}&email=${encodeURIComponent(user?.emailAddresses[0]?.emailAddress || '')}&name=${encodeURIComponent(user?.fullName || user?.firstName || 'User')}`, {
+    const resp = await fetch(`${BACKEND_URL}/api/organizations?userId=${userId}&email=${encodeURIComponent(user?.emailAddresses[0]?.emailAddress || '')}&name=${encodeURIComponent(user?.fullName || user?.firstName || 'User')}`, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -61,7 +65,7 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const resp = await fetch(BACKEND_URL, {
+    const resp = await fetch(`${BACKEND_URL}/api/organizations`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ 

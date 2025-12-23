@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000/api/dashboard";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+console.log("ENV CHECK:", process.env.NEXT_PUBLIC_BACKEND_URL);
+
+
 
 export async function GET(req: NextRequest) {
   try {
+
+    console.log("inside get");
     const { userId } = await auth();
     
     if (!userId) {
@@ -14,7 +20,7 @@ export async function GET(req: NextRequest) {
     const user = await currentUser();
 
     const resp = await fetch(
-      `${BACKEND_URL}?userId=${userId}&email=${encodeURIComponent(user?.emailAddresses[0]?.emailAddress || '')}&name=${encodeURIComponent(user?.fullName || user?.firstName || 'User')}`,
+      `${BACKEND_URL}/api/dashboard?userId=${userId}&email=${encodeURIComponent(user?.emailAddresses[0]?.emailAddress || '')}&name=${encodeURIComponent(user?.fullName || user?.firstName || 'User')}`,
       {
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',
@@ -32,7 +38,7 @@ export async function GET(req: NextRequest) {
     const data = await resp.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("GET /api/dashboard error:", error);
+    console.error("GETT /api/dashboard error:", error);
     return NextResponse.json(
       { error: "Internal Server Error" },
       { status: 500 }

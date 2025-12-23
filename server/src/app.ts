@@ -20,7 +20,7 @@ const httpServer = createServer(app);
 // Initialize Socket.io
 const io = new Server(httpServer, {
   cors: {
-    origin: env.CORS_ORIGIN || "http://localhost:3000",
+    origin: env.CORS_ORIGIN,
     methods: ["GET", "POST"],
     credentials: true
   }

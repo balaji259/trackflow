@@ -3,7 +3,9 @@ import { useState, useEffect } from "react";
 import {
   Shield,
   Menu,
-  X
+  X,
+  Kanban,
+  Workflow
 } from "lucide-react";
 import {
   SignInButton,
@@ -37,7 +39,10 @@ export default function Navbar() {
         <div className="flex justify-between items-center h-16">
           <div className="flex items-center space-x-2">
             <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg">
-              <Shield className="w-6 h-6 text-white" />
+              {/* <Shield className="w-6 h-6 text-white" /> */}
+               <Kanban className="w-6 h-6 text-white" />
+               {/* <Workflow className="w-6 h-6 text-white" /> */}
+
             </div>
             <span className="text-xl font-bold text-slate-800">trackflow</span>
           </div>
@@ -62,9 +67,9 @@ export default function Navbar() {
           </Link>
 
            
-            <a href="#features" className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium">Features</a>
-            <a href="#pricing" className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium">Pricing</a>
-            <a href="#testimonials" className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium">Testimonials</a>
+            {/* <a href="#features" className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium">Features</a> */}
+            {/* <a href="#pricing" className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium">Pricing</a> */}
+            {/* <a href="#testimonials" className="text-slate-700 hover:text-slate-900 transition-colors duration-200 font-medium">Testimonials</a> */}
 
             <SignedOut>
               <SignInButton>

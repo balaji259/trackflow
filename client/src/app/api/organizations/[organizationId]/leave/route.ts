@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000/api/organizations";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+if (!BACKEND_URL) {
+  throw new Error("NEXT_PUBLIC_BACKEND_URL is not defined");
+}
+
 
 export async function POST(
   req: NextRequest,
@@ -16,7 +21,7 @@ export async function POST(
     const { organizationId } = params;
 
     // Call backend Express route to remove user from organization
-    const resp = await fetch(`${BACKEND_URL}/${organizationId}/leave`, {
+    const resp = await fetch(`${BACKEND_URL}/api/organizations/${organizationId}/leave`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

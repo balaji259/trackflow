@@ -1,7 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { auth, currentUser } from "@clerk/nextjs/server";
 
-const BACKEND_URL = process.env.BACKEND_URL || "http://localhost:4000/api/tasks";
+const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+
+if (!BACKEND_URL) {
+  throw new Error("NEXT_PUBLIC_BACKEND_URL is not defined");
+}
+
 
 // GET single task
 export async function GET(
@@ -19,7 +24,7 @@ export async function GET(
     const { organizationId, projectId, taskId } = params;
 
     const resp = await fetch(
-      `${BACKEND_URL}/${organizationId}/${projectId}/${taskId}?userId=${userId}&email=${encodeURIComponent(user?.emailAddresses[0]?.emailAddress || '')}&name=${encodeURIComponent(user?.fullName || user?.firstName || 'User')}`,
+      `${BACKEND_URL}/api/tasks/${organizationId}/${projectId}/${taskId}?userId=${userId}&email=${encodeURIComponent(user?.emailAddresses[0]?.emailAddress || '')}&name=${encodeURIComponent(user?.fullName || user?.firstName || 'User')}`,
       {
         headers: { 'Content-Type': 'application/json' },
         cache: 'no-store',
@@ -60,7 +65,7 @@ export async function PUT(
     const { organizationId, projectId, taskId } = params;
     const body = await req.json();
 
-    const resp = await fetch(`${BACKEND_URL}/${organizationId}/${projectId}/${taskId}`, {
+    const resp = await fetch(`${BACKEND_URL}/api/tasks/${organizationId}/${projectId}/${taskId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -103,7 +108,7 @@ export async function DELETE(
     const { organizationId, projectId, taskId } = params;
 
     const resp = await fetch(
-      `${BACKEND_URL}/${organizationId}/${projectId}/${taskId}?userId=${userId}`,
+      `${BACKEND_URL}/api/tasks/${organizationId}/${projectId}/${taskId}?userId=${userId}`,
       {
         method: "DELETE",
       }
