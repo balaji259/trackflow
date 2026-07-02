@@ -93,6 +93,7 @@ router.post("/", async (req, res) => {
       description: description?.trim() || undefined,
       createdBy: user._id,
       members: [user._id],
+      admins: [user._id],
     });
 
     await newOrg.save();

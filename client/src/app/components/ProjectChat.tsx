@@ -51,9 +51,9 @@ export default function ProjectChat({ projectId, taskId, user }: ProjectChatProp
       console.log('✅ Connected to Socket.io server');
       setConnected(true);
       if (taskId) {
-        socket.emit('join_task', taskId);
+        socket.emit('join_task', { taskId, clerkUserId: user.id });
       } else {
-        socket.emit('join_project', projectId);
+        socket.emit('join_project', { projectId, clerkUserId: user.id });
       }
     });
 

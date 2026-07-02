@@ -340,7 +340,19 @@ router.put("/:organizationId/:projectId/:taskId", async (req, res) => {
     if (description !== undefined) task.description = description?.trim() || undefined;
     if (priority !== undefined) task.priority = priority;
     if (status !== undefined) task.status = status;
-    if (assignee !== undefined) task.assignee = assignee;
+    if (assignee !== undefined) {
+      if (assignee?.userId !== task.assignee?.userId) {
+        await ActivityLog.create({
+          organizationId,
+          projectId,
+          userId: user._id,
+          userName: user.name,
+          action: assignee ? `assigned task to ${assignee.name}` : `unassigned task`,
+          targetName: task.title
+        });
+      }
+      task.assignee = assignee;
+    }
     if (dueDate !== undefined) {
       if (dueDate) {
         task.dueDate = new Date(dueDate);
@@ -385,8 +397,13 @@ router.delete("/:organizationId/:projectId/:taskId", async (req, res) => {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    if (task.createdBy.userId.toString() !== (user._id as mongoose.Types.ObjectId).toString()) {
-      return res.status(403).json({ message: "Only task creator can delete the task" });
+    const organization = await Organization.findById(organizationId) as IOrganization | null;
+    const isAdmin = organization?.admins.some(
+      (adminId) => adminId.toString() === (user._id as mongoose.Types.ObjectId).toString()
+    );
+
+    if (task.createdBy.userId.toString() !== (user._id as mongoose.Types.ObjectId).toString() && !isAdmin) {
+      return res.status(403).json({ message: "Only task creator or organization admin can delete the task" });
     }
 
     await Project.findByIdAndUpdate(
@@ -395,6 +412,16 @@ router.delete("/:organizationId/:projectId/:taskId", async (req, res) => {
     );
 
     await Task.findByIdAndDelete(taskId);
+
+    // Log Activity
+    await ActivityLog.create({
+      organizationId,
+      projectId,
+      userId: user._id,
+      userName: user.name,
+      action: 'deleted task',
+      targetName: task.title
+    });
 
     res.json({ message: "Task deleted successfully" });
   } catch (error) {

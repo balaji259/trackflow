@@ -47,7 +47,7 @@ export default function OrganizationsPage() {
 
         if (!res.ok) {
           const errData = await res.json();
-          throw new Error(errData.error || "Failed to fetch organizations");
+          throw new Error(errData.message || errData.error || "Failed to fetch organizations");
         }
 
         const data = await res.json();
@@ -87,7 +87,7 @@ export default function OrganizationsPage() {
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "Failed to create organization");
+        throw new Error(errData.message || errData.error || "Failed to create organization");
       }
 
       const data = await res.json();
@@ -300,6 +300,7 @@ export default function OrganizationsPage() {
           organizationName={organizations.find(o => o.id === inviteModalOpen)?.name || ""}
           isOpen={!!inviteModalOpen}
           onClose={() => setInviteModalOpen(null)}
+          user={user}
         />
       )}
     </div>
@@ -310,16 +311,20 @@ function InviteModal({
   organizationId, 
   organizationName,
   isOpen,
-  onClose 
+  onClose,
+  user // pass user from parent
 }: { 
   organizationId: string;
   organizationName: string;
   isOpen: boolean;
   onClose: () => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  user: any;
 }) {
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviting, setInviting] = useState(false);
   const [inviteLink, setInviteLink] = useState<string | null>(null);
+  const [emailSentSuccess, setEmailSentSuccess] = useState(false);
   const [copied, setCopied] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -330,6 +335,7 @@ function InviteModal({
     setInviting(true);
     setError(null);
     setInviteLink(null);
+    setEmailSentSuccess(false);
 
     try {
       const res = await fetch("/api/invitations", {
@@ -339,16 +345,27 @@ function InviteModal({
           organizationId,
           invitedEmail: inviteEmail.trim() || undefined,
           role: "member",
+          userId: user?.id,
+          userEmail: user?.primaryEmailAddress?.emailAddress,
+          userName: user?.fullName || user?.firstName || 'User',
         }),
       });
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "Failed to create invitation");
+        throw new Error(errData.message || errData.error || "Failed to create invitation");
       }
 
       const data = await res.json();
-      setInviteLink(data.inviteLink);
+      
+      if (inviteEmail.trim()) {
+        setEmailSentSuccess(true);
+        setInviteLink(null);
+      } else {
+        setInviteLink(data.inviteLink);
+        setEmailSentSuccess(false);
+      }
+      
       setInviteEmail("");
     } catch (err) {
       console.error("Error creating invitation:", err);
@@ -379,7 +396,7 @@ function InviteModal({
         </button>
 
         <h3 className="text-2xl font-bold text-slate-900 mb-2">Invite to {organizationName}</h3>
-        <p className="text-slate-600 text-sm mb-6">Invite members via email or shareable link</p>
+        <p className="text-slate-600 text-sm mb-6">Send an email invitation to add a member to your organization.</p>
 
         {error && (
           <div className="mb-4 bg-red-50 border-l-4 border-red-500 rounded p-3">
@@ -390,35 +407,31 @@ function InviteModal({
         <form onSubmit={handleCreateInvite} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700 mb-2">
-              Email Address <span className="text-slate-400 font-normal">(optional)</span>
+              Email Address
             </label>
             <input
               type="email"
+              required
               placeholder="colleague@example.com"
               className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-slate-900 placeholder:text-slate-400"
               value={inviteEmail}
               onChange={(e) => setInviteEmail(e.target.value)}
               disabled={inviting}
             />
-            <p className="text-xs text-slate-500 mt-1">
-              Leave empty to generate a shareable link
-            </p>
           </div>
 
           <button
             type="submit"
-            disabled={inviting}
+            disabled={inviting || !inviteEmail.trim()}
             className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-3 rounded-lg font-semibold disabled:from-slate-400 disabled:to-slate-400 transition-all shadow-lg hover:shadow-xl"
           >
             {inviting ? (
               <span className="flex items-center justify-center gap-2">
                 <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                Creating...
+                Sending...
               </span>
-            ) : inviteEmail ? (
-              "Send Email Invite"
             ) : (
-              "Generate Invite Link"
+              "Send Email Invite"
             )}
           </button>
         </form>
@@ -446,6 +459,18 @@ function InviteModal({
               </button>
             </div>
             <p className="text-xs text-green-700 mt-2">Valid for 7 days</p>
+          </div>
+        )}
+
+        {emailSentSuccess && (
+          <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
+            <p className="text-sm font-medium text-green-800 flex items-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              Email Invite Sent Successfully!
+            </p>
+            <p className="text-xs text-green-700 mt-1">The recipient will receive an email with a link to join your organization.</p>
           </div>
         )}
       </div>

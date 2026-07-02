@@ -11,6 +11,9 @@ import taskRoutes from './routes/taskRoutes.js';
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import Message from "./models/Message.js";
 import User from "./models/User.js";
+import Project from "./models/Project.js";
+import Task from "./models/Task.js";
+import Organization from "./models/Organization.js";
 
 const app = express();
 
@@ -43,22 +46,67 @@ io.on("connection", (socket) => {
   console.log("✅ User connected:", socket.id);
 
   // Join a project room
-  socket.on("join_project", (projectId: string) => {
-    socket.join(`project_${projectId}`);
-    console.log(`User ${socket.id} joined project: ${projectId}`);
+  socket.on("join_project", async (data: { projectId: string, clerkUserId: string }) => {
+    try {
+      const { projectId, clerkUserId } = data;
+      const user = await User.findOne({ clerkId: clerkUserId });
+      const project = await Project.findById(projectId);
+      if (user && project) {
+        const org = await Organization.findById(project.organizationId);
+        if (org && org.members.some(m => m.toString() === (user as any)._id.toString())) {
+          socket.join(`project_${projectId}`);
+          console.log(`User ${socket.id} joined project: ${projectId}`);
+          return;
+        }
+      }
+      socket.emit("message_error", { error: "Unauthorized" });
+    } catch (e) {
+      console.error(e);
+    }
   });
 
   // Join a task room
-  socket.on("join_task", (taskId: string) => {
-    socket.join(`task_${taskId}`);
-    console.log(`User ${socket.id} joined task: ${taskId}`);
+  socket.on("join_task", async (data: { taskId: any, clerkUserId: string }) => {
+    console.log("join_task received raw data:", data);
+    try {
+      let { taskId, clerkUserId } = data;
+      console.log("join_task destructured taskId:", taskId, "typeof:", typeof taskId);
+      
+      // Defensively parse taskId in case frontend sends it as an object
+      if (typeof taskId === "object" && taskId !== null) {
+        taskId = taskId.taskId || taskId.id || taskId._id || String(taskId);
+      }
+      const user = await User.findOne({ clerkId: clerkUserId });
+      const task = await Task.findById(taskId);
+      if (user && task) {
+        const project = await Project.findById(task.projectId);
+        if (project) {
+          const org = await Organization.findById(project.organizationId);
+          if (org && org.members.some(m => m.toString() === (user as any)._id.toString())) {
+            socket.join(`task_${taskId}`);
+            console.log(`User ${socket.id} joined task: ${taskId}`);
+            return;
+          }
+        }
+      }
+      socket.emit("message_error", { error: "Unauthorized" });
+    } catch (e) {
+      console.error(e);
+    }
   });
 
   // Handle new message
   // In your Socket.io handler
 socket.on("send_message", async (data) => {
+  console.log("send_message received raw data:", data);
   try {
-    const { projectId, text, clerkUserId } = data;
+    let { projectId, taskId, text, clerkUserId } = data;
+    console.log("send_message parsed taskId:", taskId, "typeof:", typeof taskId);
+
+    // Defensively parse taskId in case frontend sends it as an object
+    if (typeof taskId === "object" && taskId !== null) {
+      taskId = taskId.taskId || taskId.id || taskId._id || String(taskId);
+    }
 
     if (!clerkUserId || !text?.trim()) {
       socket.emit("message_error", { error: "Invalid message data" });
@@ -71,16 +119,28 @@ socket.on("send_message", async (data) => {
       return;
     }
 
+    const project = await Project.findById(projectId);
+    if (!project) {
+      socket.emit("message_error", { error: "Project not found" });
+      return;
+    }
+
+    const org = await Organization.findById(project.organizationId);
+    if (!org || !org.members.some(m => m.toString() === (user as any)._id.toString())) {
+      socket.emit("message_error", { error: "Unauthorized to send messages here" });
+      return;
+    }
+
     const message = await Message.create({
       projectId,
-      taskId: data.taskId || undefined,
-      userId: user._id,
+      taskId: taskId || undefined,
+      userId: (user as any)._id,
       userName: user.name,
       text: text.trim(),
     });
 
     // Emit to task room if taskId is present, else project room
-    const room = data.taskId ? `task_${data.taskId}` : `project_${projectId}`;
+    const room = taskId ? `task_${taskId}` : `project_${projectId}`;
     io.to(room).emit("new_message", {
       _id: message._id,
       userName: message.userName,

@@ -12,16 +12,17 @@ interface Activity {
 
 interface ActivityLogWidgetProps {
   projectId: string;
+  fullPage?: boolean;
 }
 
-export default function ActivityLogWidget({ projectId }: ActivityLogWidgetProps) {
+export default function ActivityLogWidget({ projectId, fullPage = false }: ActivityLogWidgetProps) {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function fetchActivities() {
       try {
-        const res = await fetch(`/api/activities/${projectId}`);
+        const res = await fetch(`/api/projects/${projectId}/activities`);
         if (res.ok) {
           const data = await res.json();
           setActivities(data);
@@ -37,7 +38,7 @@ export default function ActivityLogWidget({ projectId }: ActivityLogWidgetProps)
 
   if (loading) {
     return (
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 animate-pulse">
+      <div className={fullPage ? "p-6 animate-pulse" : "bg-white rounded-xl shadow-lg border border-gray-200 p-6 animate-pulse"}>
         <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
         <div className="space-y-4">
           {[1, 2, 3].map((i) => (
@@ -55,15 +56,20 @@ export default function ActivityLogWidget({ projectId }: ActivityLogWidgetProps)
   }
 
   return (
-    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 h-full max-h-[600px] flex flex-col">
-      <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
-        <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        Activity Log
-      </h3>
+    <div className={fullPage 
+      ? "p-6 flex flex-col h-full" 
+      : "bg-white rounded-xl shadow-lg border border-gray-200 p-6 h-full max-h-[calc(100vh-6rem)] flex flex-col"
+    }>
+      {!fullPage && (
+        <h3 className="text-xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+          <svg className="w-5 h-5 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Activity Log
+        </h3>
+      )}
       
-      <div className="flex-1 overflow-y-auto pr-2 space-y-6">
+      <div className={fullPage ? "flex-1 space-y-6" : "flex-1 overflow-y-auto pr-2 space-y-6"}>
         {activities.length === 0 ? (
           <div className="text-center text-gray-500 py-8">
             <svg className="w-12 h-12 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">

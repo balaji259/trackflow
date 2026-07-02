@@ -70,96 +70,97 @@ router.get("/", async (req, res) => {
     // Get project IDs
     const projectIds = projects.map(p => p._id);
 
-    // Get all tasks in user's projects
-    const allTasks = await Task.find({
-      projectId: { $in: projectIds }
-    });
+    // 1. Efficiently get Recent Tasks (only 10)
+    const recentTasks = await Task.find({ projectId: { $in: projectIds } })
+      .sort({ createdAt: -1 })
+      .limit(10);
 
-    // Get tasks assigned to current user
-    const myTasks = allTasks.filter(task => 
-      task.assignee?.userId?.toString() === (user._id as mongoose.Types.ObjectId).toString()
-    );
+    // 2. Compute Dashboard Stats using Aggregation
+    const statsResult = await Task.aggregate([
+      { $match: { projectId: { $in: projectIds } } },
+      {
+        $group: {
+          _id: null,
+          totalTasks: { $sum: 1 },
+          myTasks: { $sum: { $cond: [{ $eq: ["$assignee.userId", user._id] }, 1, 0] } },
+          todo: { $sum: { $cond: [{ $eq: ["$status", "todo"] }, 1, 0] } },
+          inProgress: { $sum: { $cond: [{ $eq: ["$status", "in-progress"] }, 1, 0] } },
+          inReview: { $sum: { $cond: [{ $eq: ["$status", "in-review"] }, 1, 0] } },
+          completed: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] } },
+          myTodo: { $sum: { $cond: [{ $and: [{ $eq: ["$assignee.userId", user._id] }, { $eq: ["$status", "todo"] }] }, 1, 0] } },
+          myInProgress: { $sum: { $cond: [{ $and: [{ $eq: ["$assignee.userId", user._id] }, { $eq: ["$status", "in-progress"] }] }, 1, 0] } },
+          myInReview: { $sum: { $cond: [{ $and: [{ $eq: ["$assignee.userId", user._id] }, { $eq: ["$status", "in-review"] }] }, 1, 0] } },
+          myCompleted: { $sum: { $cond: [{ $and: [{ $eq: ["$assignee.userId", user._id] }, { $eq: ["$status", "completed"] }] }, 1, 0] } },
+          highestPriority: { $sum: { $cond: [{ $eq: ["$priority", "highest"] }, 1, 0] } },
+          highPriority: { $sum: { $cond: [{ $eq: ["$priority", "high"] }, 1, 0] } },
+          mediumPriority: { $sum: { $cond: [{ $eq: ["$priority", "medium"] }, 1, 0] } },
+          lowPriority: { $sum: { $cond: [{ $eq: ["$priority", "low"] }, 1, 0] } },
+          lowestPriority: { $sum: { $cond: [{ $eq: ["$priority", "lowest"] }, 1, 0] } },
+          overdue: { $sum: { $cond: [{ $and: [{ $lt: ["$dueDate", new Date()] }, { $ne: ["$status", "completed"] }] }, 1, 0] } },
+        }
+      }
+    ]);
 
-    // Calculate statistics
+    const aggStats = statsResult[0] || {
+      totalTasks: 0, myTasks: 0, todo: 0, inProgress: 0, inReview: 0, completed: 0,
+      myTodo: 0, myInProgress: 0, myInReview: 0, myCompleted: 0,
+      highestPriority: 0, highPriority: 0, mediumPriority: 0, lowPriority: 0, lowestPriority: 0,
+      overdue: 0
+    };
+
     const stats = {
       totalOrganizations: organizations.length,
       totalProjects: projects.length,
-      totalTasks: allTasks.length,
-      myTasks: myTasks.length,
-      
-      // Task status breakdown
-      tasksByStatus: {
-        todo: allTasks.filter(t => t.status === 'todo').length,
-        inProgress: allTasks.filter(t => t.status === 'in-progress').length,
-        inReview: allTasks.filter(t => t.status === 'in-review').length,
-        completed: allTasks.filter(t => t.status === 'completed').length,
-      },
-
-      // My tasks by status
-      myTasksByStatus: {
-        todo: myTasks.filter(t => t.status === 'todo').length,
-        inProgress: myTasks.filter(t => t.status === 'in-progress').length,
-        inReview: myTasks.filter(t => t.status === 'in-review').length,
-        completed: myTasks.filter(t => t.status === 'completed').length,
-      },
-
-      // Task priority breakdown
-      tasksByPriority: {
-        highest: allTasks.filter(t => t.priority === 'highest').length,
-        high: allTasks.filter(t => t.priority === 'high').length,
-        medium: allTasks.filter(t => t.priority === 'medium').length,
-        low: allTasks.filter(t => t.priority === 'low').length,
-        lowest: allTasks.filter(t => t.priority === 'lowest').length,
-      },
-
-      // Overdue tasks
-      overdueTasks: allTasks.filter(t => 
-        t.dueDate && new Date(t.dueDate) < new Date() && t.status !== 'completed'
-      ).length,
-
-      // Completion rate
-      completionRate: allTasks.length > 0 
-        ? Math.round((allTasks.filter(t => t.status === 'completed').length / allTasks.length) * 100)
-        : 0,
+      totalTasks: aggStats.totalTasks,
+      myTasks: aggStats.myTasks,
+      tasksByStatus: { todo: aggStats.todo, inProgress: aggStats.inProgress, inReview: aggStats.inReview, completed: aggStats.completed },
+      myTasksByStatus: { todo: aggStats.myTodo, inProgress: aggStats.myInProgress, inReview: aggStats.myInReview, completed: aggStats.myCompleted },
+      tasksByPriority: { highest: aggStats.highestPriority, high: aggStats.highPriority, medium: aggStats.mediumPriority, low: aggStats.lowPriority, lowest: aggStats.lowestPriority },
+      overdueTasks: aggStats.overdue,
+      completionRate: aggStats.totalTasks > 0 ? Math.round((aggStats.completed / aggStats.totalTasks) * 100) : 0,
     };
 
-    // Recent tasks (last 10)
-    const recentTasks = allTasks
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-      .slice(0, 10);
+    // 3. Compute Project Stats using Aggregation
+    const projectStatsResult = await Task.aggregate([
+      { $match: { projectId: { $in: projectIds } } },
+      {
+        $group: {
+          _id: "$projectId",
+          taskCount: { $sum: 1 },
+          completedTasks: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] } }
+        }
+      }
+    ]);
+    const projectStatsMap = new Map(projectStatsResult.map(p => [p._id.toString(), p]));
 
-    // Projects with task counts
     const projectsWithStats = projects.map(project => {
-      const projectTasks = allTasks.filter(t => 
-        t.projectId.toString() === project._id.toString()
-      );
-      
+      const pStats = projectStatsMap.get(project._id.toString()) || { taskCount: 0, completedTasks: 0 };
       return {
         ...project.toObject(),
-        taskCount: projectTasks.length,
-        completedTasks: projectTasks.filter(t => t.status === 'completed').length,
-        completionRate: projectTasks.length > 0
-          ? Math.round((projectTasks.filter(t => t.status === 'completed').length / projectTasks.length) * 100)
-          : 0,
+        taskCount: pStats.taskCount,
+        completedTasks: pStats.completedTasks,
+        completionRate: pStats.taskCount > 0 ? Math.round((pStats.completedTasks / pStats.taskCount) * 100) : 0,
       };
     });
 
-    // Calculate per-member contribution
-    const memberStats: Record<string, { name: string; completed: number; total: number }> = {};
-    allTasks.forEach(task => {
-      if (task.assignee?.userId) {
-        const id = task.assignee.userId.toString();
-        if (!memberStats[id]) {
-          memberStats[id] = { name: task.assignee.name, completed: 0, total: 0 };
+    // 4. Compute Per-Member Stats using Aggregation
+    const perMemberStatsResult = await Task.aggregate([
+      { $match: { projectId: { $in: projectIds }, "assignee.userId": { $exists: true } } },
+      {
+        $group: {
+          _id: "$assignee.userId",
+          name: { $first: "$assignee.name" },
+          total: { $sum: 1 },
+          completed: { $sum: { $cond: [{ $eq: ["$status", "completed"] }, 1, 0] } }
         }
-        memberStats[id].total += 1;
-        if (task.status === 'completed') {
-          memberStats[id].completed += 1;
-        }
-      }
-    });
-
-    const perMemberStats = Object.values(memberStats).sort((a, b) => b.completed - a.completed);
+      },
+      { $sort: { completed: -1 } }
+    ]);
+    const perMemberStats = perMemberStatsResult.map(m => ({
+      name: m.name,
+      total: m.total,
+      completed: m.completed
+    }));
 
     res.json({
       stats,

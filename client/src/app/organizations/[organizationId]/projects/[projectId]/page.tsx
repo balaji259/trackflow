@@ -304,6 +304,17 @@ type Status = "todo" | "in-progress" | "in-review" | "completed";
                 Board View
               </button>
 
+              {/* Activity Log Button */}
+              <button
+                onClick={() => router.push(`/organizations/${organizationId}/projects/${projectId}/activities`)}
+                className="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-3 rounded-lg font-medium shadow-lg hover:shadow-xl transition-all duration-200 flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Activity Log
+              </button>
+
              {/* Chat Button - Opens Drawer */}
              <button
                 onClick={() => setIsChatOpen(true)}
@@ -507,8 +518,8 @@ type Status = "todo" | "in-progress" | "in-review" | "completed";
         </div>
 
         {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-2">
+        <div className="mb-6">
+          <div className="w-full">
             {/* Tasks List */}
             <div>
           <div className="flex items-center justify-between mb-4">
@@ -639,9 +650,6 @@ type Status = "todo" | "in-progress" | "in-review" | "completed";
             </div>
           )}
             </div>
-          </div>
-          <div className="lg:col-span-1">
-            <ActivityLogWidget projectId={projectId} />
           </div>
         </div>
       </div>

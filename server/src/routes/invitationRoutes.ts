@@ -5,6 +5,7 @@ import Invitation from "../models/Invitation.js";
 import Organization from "../models/Organization.js";
 import User from "../models/User.js";
 import mongoose from "mongoose";
+import nodemailer from "nodemailer";
 
 const router = express.Router();
 
@@ -58,6 +59,7 @@ router.post("/", async (req, res) => {
     } = req.body;
 
     if (!organizationId || !clerkUserId) {
+      console.error("❌ Missing required fields:", { organizationId, clerkUserId });
       return res.status(400).json({ 
         message: "organizationId and userId are required" 
       });
@@ -79,10 +81,13 @@ router.post("/", async (req, res) => {
     ) || organization.createdBy.toString() === (inviter._id as any).toString();
 
     if (!isAdmin) {
+      console.error("❌ User is not an admin:", clerkUserId);
       return res.status(403).json({ 
         message: "You must be an admin to invite users" 
       });
     }
+
+    let existingInvitationToResend = null;
 
     if (invitedEmail) {
       const existingUser = await User.findOne({ email: invitedEmail });
@@ -105,32 +110,80 @@ router.post("/", async (req, res) => {
       });
 
       if (existingInvite) {
-        return res.status(400).json({ 
-          message: "An active invitation already exists for this email"
-        });
+        // If it exists, we will re-send the email and return the existing invite
+        existingInvitationToResend = existingInvite;
       }
     }
 
-    const invitation = new Invitation({
-      organization: organizationId,
-      invitedBy: inviter._id,
-      invitedEmail: invitedEmail || undefined,
-      token: generateInviteToken(),
-      role,
-      status: 'pending',
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-    });
+    let invitation = existingInvitationToResend;
 
-    await invitation.save();
+    if (!invitation) {
+      invitation = new Invitation({
+        organization: organizationId,
+        invitedBy: inviter._id,
+        invitedEmail: invitedEmail || undefined,
+        token: generateInviteToken(),
+        role,
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+      });
+      await invitation.save();
+    }
 
     await invitation.populate([
       { path: 'organization', select: 'name description' },
       { path: 'invitedBy', select: 'name email' }
     ]);
 
+    const inviteLinkUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/invite/${invitation.token}`;
+    
+    if (invitedEmail) {
+      if (process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD) {
+        try {
+          const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+              user: process.env.GMAIL_USER,
+              pass: process.env.GMAIL_APP_PASSWORD
+            }
+          });
+
+          const mailOptions = {
+            from: `"TrackFlow" <${process.env.GMAIL_USER}>`,
+            to: invitedEmail,
+            subject: `You've been invited to join ${organization.name}`,
+            html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #eaeaea; border-radius: 10px;">
+                  <h2 style="color: #2563eb;">Join ${organization.name} on TrackFlow</h2>
+                  <p style="color: #374151; font-size: 16px;">Hello,</p>
+                  <p style="color: #374151; font-size: 16px;">You have been invited by <strong>${inviter.name}</strong> to join their workspace on TrackFlow.</p>
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${inviteLinkUrl}" style="background-color: #2563eb; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block;">
+                      Accept Invitation
+                    </a>
+                  </div>
+                  <p style="color: #6b7280; font-size: 14px;">If the button doesn't work, you can copy and paste this link into your browser:</p>
+                  <p style="color: #2563eb; font-size: 14px; word-break: break-all;">${inviteLinkUrl}</p>
+                </div>
+              `
+          };
+
+          console.log(`⏳ Attempting to send email to ${invitedEmail}...`);
+          await transporter.sendMail(mailOptions);
+          console.log(`✅ Real Email sent successfully to ${invitedEmail} via Nodemailer!`);
+        } catch (emailErr) {
+          console.error("❌ Failed to send email via Nodemailer:", emailErr);
+        }
+      } else {
+        console.warn(`\n⚠️ GMAIL_USER or GMAIL_APP_PASSWORD is missing in your server/.env file!`);
+        console.warn(`Simulated Email To: ${invitedEmail}`);
+        console.warn(`Link: ${inviteLinkUrl}\n`);
+      }
+    }
+
     res.status(201).json({ 
       invitation,
-      inviteLink: `${process.env.FRONTEND_URL || 'http://localhost:3000'}/invite/${invitation.token}`
+      inviteLink: inviteLinkUrl
     });
 
   } catch (error) {
