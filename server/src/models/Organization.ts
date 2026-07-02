@@ -5,6 +5,7 @@ export interface IOrganization extends Document {
   description?: string;
   createdBy: mongoose.Types.ObjectId;
   members: mongoose.Types.ObjectId[];
+  admins: mongoose.Types.ObjectId[];
   projects: mongoose.Types.ObjectId[];
 
   createdAt: Date;
@@ -17,6 +18,7 @@ const OrganizationSchema = new Schema<IOrganization>(
     description: { type: String },
     createdBy: { type: Schema.Types.ObjectId, ref: "User", required: true },
     members: [{ type: Schema.Types.ObjectId, ref: "User" }],
+    admins: [{ type: Schema.Types.ObjectId, ref: "User" }],
     projects: [{ type: Schema.Types.ObjectId, ref: "Project" }],
   },
   { timestamps: true }

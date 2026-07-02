@@ -3,6 +3,8 @@ import User from "../models/User.js";
 import Organization from "../models/Organization.js";
 import Project from "../models/Project.js";
 import Task from "../models/Task.js";
+import ActivityLog from "../models/ActivityLog.js";
+import Message from "../models/Message.js";
 import type { IUser } from "../models/User.js";
 import type { IOrganization } from "../models/Organization.js";
 import type { IProject } from "../models/Project.js";
@@ -38,6 +40,29 @@ async function getOrCreateUser(clerkUserId: string, email?: string, name?: strin
   
   return user;
 }
+
+// GET messages for a task (Must be before /:organizationId/:projectId to avoid path collision)
+router.get("/:taskId/messages", async (req, res) => {
+  try {
+    const messages = await Message.find({ taskId: req.params.taskId })
+      .populate('userId', 'clerkId')
+      .sort({ createdAt: -1 })
+      .limit(30)
+      .lean();
+    
+    const messagesWithClerkId = messages.map((msg: any) => ({
+      _id: msg._id,
+      userName: msg.userName,
+      userId: msg.userId?.clerkId || '',
+      text: msg.text,
+      createdAt: msg.createdAt
+    }));
+    
+    res.json({ messages: messagesWithClerkId.reverse() });
+  } catch (error) {
+    res.status(500).json({ error: 'Failed to fetch messages' });
+  }
+});
 
 // GET - Fetch all tasks for a project
 router.get("/:organizationId/:projectId", async (req, res) => {
@@ -228,6 +253,16 @@ router.post("/:organizationId/:projectId", async (req, res) => {
       await project.save();
     }
 
+    // Log Activity
+    await ActivityLog.create({
+      organizationId,
+      projectId,
+      userId: user._id,
+      userName: user.name,
+      action: 'created task',
+      targetName: newTask.title
+    });
+
     res.status(201).json(newTask);
   } catch (error) {
     console.error("Error creating task:", error);
@@ -286,6 +321,18 @@ router.put("/:organizationId/:projectId/:taskId", async (req, res) => {
     
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
+    }
+
+    // Log Activity if status changed
+    if (status !== undefined && status !== task.status) {
+      await ActivityLog.create({
+        organizationId,
+        projectId,
+        userId: user._id,
+        userName: user.name,
+        action: `moved task to ${status}`,
+        targetName: task.title
+      });
     }
 
     // Update task fields

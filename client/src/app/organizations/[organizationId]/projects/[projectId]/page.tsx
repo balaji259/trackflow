@@ -4,6 +4,7 @@ import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
 import SlideDrawer from "@/app/components/SlideDrawer";
 import ProjectChat from "@/app/components/ProjectChat";
+import ActivityLogWidget from "@/app/components/ActivityLogWidget";
 
 
 // Single Task interface with userId in assignee
@@ -505,8 +506,11 @@ type Status = "todo" | "in-progress" | "in-review" | "completed";
           </div>
         </div>
 
-        {/* Tasks List */}
-        <div className="mb-6">
+        {/* Main Content Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="lg:col-span-2">
+            {/* Tasks List */}
+            <div>
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-2xl font-semibold text-gray-900">
               All Tasks <span className="text-gray-500 text-lg font-normal">({filteredTasks.length})</span>
@@ -634,6 +638,11 @@ type Status = "todo" | "in-progress" | "in-review" | "completed";
               ))}
             </div>
           )}
+            </div>
+          </div>
+          <div className="lg:col-span-1">
+            <ActivityLogWidget projectId={projectId} />
+          </div>
         </div>
       </div>
 

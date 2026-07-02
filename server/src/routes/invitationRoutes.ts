@@ -74,9 +74,13 @@ router.post("/", async (req, res) => {
       (memberId) => memberId.toString() === (inviter._id as any).toString()
     );
     
-    if (!isMember) {
+    const isAdmin = organization.admins.some(
+      (adminId) => adminId.toString() === (inviter._id as any).toString()
+    ) || organization.createdBy.toString() === (inviter._id as any).toString();
+
+    if (!isAdmin) {
       return res.status(403).json({ 
-        message: "You don't have permission to invite users" 
+        message: "You must be an admin to invite users" 
       });
     }
 
@@ -234,6 +238,9 @@ router.post("/:token/accept", async (req, res) => {
     }
 
     organization.members.push(user._id as mongoose.Types.ObjectId);
+    if (invitation.role === 'admin') {
+      organization.admins.push(user._id as mongoose.Types.ObjectId);
+    }
     await organization.save();
 
     if (!user.organizations.includes(organization._id as mongoose.Types.ObjectId)) {

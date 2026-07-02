@@ -67,11 +67,18 @@ interface Task {
   createdAt: string;
 }
 
+interface PerMemberStat {
+  name: string;
+  completed: number;
+  total: number;
+}
+
 interface DashboardData {
   stats: Stats;
   organizations: Organization[];
   projects: Project[];
   recentTasks: Task[];
+  perMemberStats: PerMemberStat[];
 }
 
 export default function DashboardPage() {
@@ -381,8 +388,9 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Recent Tasks */}
-        <div className="bg-white rounded-xl shadow-md p-6">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Tasks */}
+          <div className="bg-white rounded-xl shadow-md p-6">
           <h3 className="text-lg font-semibold text-gray-900 mb-4">Recent Tasks</h3>
           
           {data.recentTasks.length > 0 ? (
@@ -428,6 +436,37 @@ export default function DashboardPage() {
               <p className="text-sm">No tasks yet</p>
             </div>
           )}
+          </div>
+
+          {/* Team Contributions */}
+          <div className="bg-white rounded-xl shadow-md p-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Team Contributions</h3>
+            {data.perMemberStats && data.perMemberStats.length > 0 ? (
+              <div className="space-y-4">
+                {data.perMemberStats.slice(0, 5).map((member, idx) => (
+                  <div key={idx} className="flex items-center justify-between p-3 border border-gray-100 rounded-lg hover:bg-gray-50 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white text-sm font-bold shadow-sm">
+                        {member.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">{member.name}</p>
+                        <p className="text-xs text-gray-500">{member.total} total tasks</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <p className="font-semibold text-green-600">{member.completed}</p>
+                      <p className="text-xs text-gray-500">completed</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-gray-400">
+                <p className="text-sm">No contribution data yet</p>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

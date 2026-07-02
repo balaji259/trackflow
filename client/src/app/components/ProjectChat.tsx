@@ -4,6 +4,7 @@ import { io, Socket } from 'socket.io-client';
 
 interface ProjectChatProps {
   projectId: string;
+  taskId?: string;
   user: ChatUser;
 }
 
@@ -20,7 +21,7 @@ interface Message {
   createdAt: string;
 }
 
-export default function ProjectChat({ projectId, user }: ProjectChatProps) {
+export default function ProjectChat({ projectId, taskId, user }: ProjectChatProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
@@ -30,13 +31,14 @@ export default function ProjectChat({ projectId, user }: ProjectChatProps) {
   
   const fetchInitialMessages = useCallback(async () => {
     try {
-      const res = await fetch(`/api/projects/messages/${projectId}`);
+      const url = taskId ? `/api/tasks/messages/${taskId}` : `/api/projects/messages/${projectId}`;
+      const res = await fetch(url);
       const data = await res.json();
       setMessages(data.messages || []);
     } catch (error) {
       console.error('Error fetching initial messages:', error);
     }
-  }, [projectId]);
+  }, [projectId, taskId]);
   
   useEffect(() => {
     const socket = io(process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000', {
@@ -48,7 +50,11 @@ export default function ProjectChat({ projectId, user }: ProjectChatProps) {
     socket.on('connect', () => {
       console.log('✅ Connected to Socket.io server');
       setConnected(true);
-      socket.emit('join_project', projectId);
+      if (taskId) {
+        socket.emit('join_task', taskId);
+      } else {
+        socket.emit('join_project', projectId);
+      }
     });
 
     socket.on('disconnect', () => {
@@ -69,10 +75,14 @@ export default function ProjectChat({ projectId, user }: ProjectChatProps) {
     fetchInitialMessages();
 
     return () => {
-      socket.emit('leave_project', projectId);
+      if (taskId) {
+        // Assume backend handles leave_task if needed, or disconnect does it
+      } else {
+        socket.emit('leave_project', projectId);
+      }
       socket.disconnect();
     };
-  }, [projectId, fetchInitialMessages]);
+  }, [projectId, taskId, fetchInitialMessages]);
 
 
 
@@ -91,6 +101,7 @@ export default function ProjectChat({ projectId, user }: ProjectChatProps) {
     try {
       socketRef.current.emit('send_message', {
         projectId,
+        taskId,
         text: messageText,
         clerkUserId: user.id,
       });

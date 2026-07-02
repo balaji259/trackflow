@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/nextjs";
 import { useParams, useRouter } from "next/navigation";
+import ProjectChat from "@/app/components/ProjectChat";
 
 interface Task {
   _id: string;
@@ -297,8 +298,10 @@ export default function TaskDetailPage() {
 
         {/* Task Details Card */}
         {!isEditing ? (
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
-            {/* Header Section */}
+          /* Task Chat Section */
+          <>
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+              {/* Header Section */}
             <div className="p-6 border-b border-gray-200">
               <div className="flex justify-between items-start mb-4">
                 <h1 className="text-3xl font-bold text-gray-900">{task.title}</h1>
@@ -416,6 +419,12 @@ export default function TaskDetailPage() {
               </div>
             </div>
           </div>
+            
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden mt-6 h-[500px]">
+              <div className="p-4 border-b border-gray-200 bg-gray-50 font-semibold text-gray-700">Task Discussion</div>
+              <ProjectChat projectId={projectId} taskId={taskId} user={{ id: user.id }} />
+            </div>
+          </>
         ) : (
           /* Edit Form */
           <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200">

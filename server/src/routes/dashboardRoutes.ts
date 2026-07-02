@@ -144,11 +144,29 @@ router.get("/", async (req, res) => {
       };
     });
 
+    // Calculate per-member contribution
+    const memberStats: Record<string, { name: string; completed: number; total: number }> = {};
+    allTasks.forEach(task => {
+      if (task.assignee?.userId) {
+        const id = task.assignee.userId.toString();
+        if (!memberStats[id]) {
+          memberStats[id] = { name: task.assignee.name, completed: 0, total: 0 };
+        }
+        memberStats[id].total += 1;
+        if (task.status === 'completed') {
+          memberStats[id].completed += 1;
+        }
+      }
+    });
+
+    const perMemberStats = Object.values(memberStats).sort((a, b) => b.completed - a.completed);
+
     res.json({
       stats,
       organizations,
       projects: projectsWithStats,
       recentTasks,
+      perMemberStats,
     });
   } catch (error) {
     console.error("Error fetching dashboard data:", error);

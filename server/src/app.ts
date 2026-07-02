@@ -48,6 +48,12 @@ io.on("connection", (socket) => {
     console.log(`User ${socket.id} joined project: ${projectId}`);
   });
 
+  // Join a task room
+  socket.on("join_task", (taskId: string) => {
+    socket.join(`task_${taskId}`);
+    console.log(`User ${socket.id} joined task: ${taskId}`);
+  });
+
   // Handle new message
   // In your Socket.io handler
 socket.on("send_message", async (data) => {
@@ -67,21 +73,23 @@ socket.on("send_message", async (data) => {
 
     const message = await Message.create({
       projectId,
+      taskId: data.taskId || undefined,
       userId: user._id,
       userName: user.name,
       text: text.trim(),
     });
 
-    // ✅ FIX: Send clerkId so frontend can compare
-    io.to(`project_${projectId}`).emit("new_message", {
+    // Emit to task room if taskId is present, else project room
+    const room = data.taskId ? `task_${data.taskId}` : `project_${projectId}`;
+    io.to(room).emit("new_message", {
       _id: message._id,
       userName: message.userName,
-      userId: clerkUserId,  // ✅ Send Clerk user ID
+      userId: clerkUserId,
       text: message.text,
       createdAt: message.createdAt,
     });
 
-    console.log(`Message sent to project ${projectId}:`, text);
+    console.log(`Message sent to ${room}:`, text);
   } catch (error) {
     console.error("Error sending message:", error);
     socket.emit("message_error", { error: "Failed to send message" });

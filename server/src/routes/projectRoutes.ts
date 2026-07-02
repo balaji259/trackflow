@@ -3,6 +3,7 @@ import User from "../models/User.js";
 import Organization from "../models/Organization.js";
 import Project from "../models/Project.js";
 import Message from "../models/Message.js";
+import ActivityLog from "../models/ActivityLog.js";
 
 import type { IUser } from "../models/User.js";
 import type { IOrganization } from "../models/Organization.js";
@@ -213,7 +214,13 @@ router.delete("/:organizationId/:projectId", async (req, res) => {
 
 // In projectRoutes.js GET endpoint
 router.get("/:projectId/messages", async (req, res) => {
-  const messages = await Message.find({ projectId: req.params.projectId })
+  const messages = await Message.find({ 
+    projectId: req.params.projectId, 
+    $or: [
+      { taskId: { $exists: false } },
+      { taskId: null }
+    ]
+  })
     .populate('userId', 'clerkId')  // ✅ Populate clerkId
     .sort({ createdAt: -1 })
     .limit(30)
@@ -232,5 +239,17 @@ router.get("/:projectId/messages", async (req, res) => {
 });
 
 
+
+router.get("/:projectId/activities", async (req, res) => {
+  try {
+    const activities = await ActivityLog.find({ projectId: req.params.projectId })
+      .sort({ createdAt: -1 })
+      .limit(50)
+      .lean();
+    res.json(activities);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching activities" });
+  }
+});
 
 export default router;
