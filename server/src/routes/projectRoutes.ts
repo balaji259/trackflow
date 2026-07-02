@@ -220,7 +220,7 @@ router.get("/:projectId/messages", async (req, res) => {
     .lean();
   
   // ✅ Map to include clerkId
-  const messagesWithClerkId = messages.map(msg => ({
+  const messagesWithClerkId = messages.map((msg: any) => ({
     _id: msg._id,
     userName: msg.userName,
     userId: msg.userId?.clerkId || '',  // ✅ Use Clerk ID

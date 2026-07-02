@@ -13,8 +13,10 @@ function generateInviteToken(): string {
   return crypto.randomBytes(32).toString('hex');
 }
 
+import type { IUser } from "../models/User.js";
+
 // Helper function (same as your organizations route)
-async function getOrCreateUser(clerkUserId: string, email?: string, name?: string) {
+async function getOrCreateUser(clerkUserId: string, email?: string, name?: string): Promise<IUser> {
   let user = await User.findOne({ clerkId: clerkUserId });
   
   if (!user) {
@@ -69,7 +71,7 @@ router.post("/", async (req, res) => {
     }
 
     const isMember = organization.members.some(
-      (memberId) => memberId.toString() === inviter._id.toString()
+      (memberId) => memberId.toString() === (inviter._id as any).toString()
     );
     
     if (!isMember) {
@@ -82,7 +84,7 @@ router.post("/", async (req, res) => {
       const existingUser = await User.findOne({ email: invitedEmail });
       if (existingUser) {
         const isAlreadyMember = organization.members.some(
-          (memberId) => memberId.toString() === existingUser._id.toString()
+          (memberId) => memberId.toString() === (existingUser._id as any).toString()
         );
         if (isAlreadyMember) {
           return res.status(400).json({ 
@@ -215,7 +217,7 @@ router.post("/:token/accept", async (req, res) => {
     }
 
     const isAlreadyMember = organization.members.some(
-      (memberId) => memberId.toString() === user._id.toString()
+      (memberId) => memberId.toString() === (user._id as any).toString()
     );
 
     if (isAlreadyMember) {
@@ -281,7 +283,7 @@ router.get("/organization/:organizationId", async (req, res) => {
     }
 
     const isMember = organization.members.some(
-      (memberId) => memberId.toString() === user._id.toString()
+      (memberId) => memberId.toString() === (user._id as any).toString()
     );
 
     if (!isMember) {

@@ -294,7 +294,13 @@ router.put("/:organizationId/:projectId/:taskId", async (req, res) => {
     if (priority !== undefined) task.priority = priority;
     if (status !== undefined) task.status = status;
     if (assignee !== undefined) task.assignee = assignee;
-    if (dueDate !== undefined) task.dueDate = dueDate ? new Date(dueDate) : undefined;
+    if (dueDate !== undefined) {
+      if (dueDate) {
+        task.dueDate = new Date(dueDate);
+      } else {
+        (task as any).dueDate = undefined;
+      }
+    }
 
     await task.save();
 

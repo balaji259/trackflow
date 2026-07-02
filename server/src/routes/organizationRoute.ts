@@ -1,6 +1,7 @@
 import express from "express";
 import User from "../models/User.js";
 import Organization from "../models/Organization.js";
+import type { IOrganization } from "../models/Organization.js";
 import mongoose from "mongoose";
 
 const router = express.Router();
